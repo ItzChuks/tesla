@@ -1,0 +1,2358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesla Inventory — Browse & Order</title>
+    <link rel="stylesheet" href="index.css">
+    <style>
+        :root {
+            --blue: #3d6ff8;
+            --blue-dark: #2554e0;
+            --blue-soft: #eef2ff;
+            --red: #e31937;
+            --green: #16a34a;
+            --ink: #0d1117;
+            --ink2: #374151;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --bg: #f9fafb;
+            --white: #ffffff;
+            --card-radius: 16px;
+            --sidebar-w: 268px;
+        }
+
+        /* ═══ PAGE HERO ═══ */
+        .inv-page-hero {
+            background: var(--ink);
+            padding: clamp(40px,6vw,64px) clamp(20px,5vw,72px) 0;
+            position: relative; overflow: hidden;
+        }
+        .inv-page-hero::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse 80% 60% at 60% -10%, rgba(61,111,248,0.22) 0%, transparent 65%);
+        }
+        .hero-inner { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; }
+        .hero-top { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 32px; }
+        .hero-text { color: #fff; }
+        .hero-eyebrow { font-family: sans-serif; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--blue); margin-bottom: 10px; display: block; }
+        .hero-heading { font-family: 'Georgia', serif; font-size: clamp(2rem,4.5vw,3.2rem); font-weight: 700; line-height: 1.08; letter-spacing: -0.025em; margin-bottom: 10px; }
+        .hero-sub { font-family: sans-serif; font-size: clamp(0.85rem,1.5vw,1rem); color: rgba(255,255,255,0.6); line-height: 1.6; max-width: 440px; }
+        .hero-stats { display: flex; gap: clamp(24px,3vw,48px); flex-wrap: wrap; }
+        .hero-stat { text-align: right; }
+        .hero-stat-num { font-family: sans-serif; font-size: clamp(1.3rem,2.2vw,1.8rem); font-weight: 800; color: #fff; line-height: 1; }
+        .hero-stat-lbl { font-family: sans-serif; font-size: 0.7rem; color: rgba(255,255,255,0.5); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 3px; }
+
+        /* ═══ CATEGORY TABS ═══ */
+        .category-tabs {
+            display: flex; gap: 0; border-bottom: 1px solid rgba(255,255,255,0.1);
+            position: relative; z-index: 1;
+        }
+        .cat-tab {
+            font-family: sans-serif; font-size: clamp(0.82rem,1.3vw,0.95rem); font-weight: 600;
+            color: rgba(255,255,255,0.52); padding: 14px clamp(16px,2.5vw,28px);
+            border: none; background: none; cursor: pointer;
+            border-bottom: 2.5px solid transparent; margin-bottom: -1px;
+            transition: color 0.2s, border-color 0.2s; white-space: nowrap;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .cat-tab .tab-count {
+            background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.5);
+            font-size: 0.68rem; font-weight: 700; padding: 2px 7px; border-radius: 20px;
+            transition: background 0.2s, color 0.2s;
+        }
+        .cat-tab.active { color: #fff; border-bottom-color: var(--blue); }
+        .cat-tab.active .tab-count { background: var(--blue); color: #fff; }
+        .cat-tab:hover:not(.active) { color: rgba(255,255,255,0.8); }
+
+        /* ═══ SEARCH + SORT BAR ═══ */
+        .search-bar-wrap {
+            background: var(--white); border-bottom: 1px solid var(--border);
+            padding: 16px clamp(16px,4vw,60px); position: sticky; top: 70px; z-index: 80;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        .search-bar-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .search-field {
+            position: relative; flex: 1; min-width: 220px;
+        }
+        .search-field svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+        .search-input {
+            width: 100%; padding: 11px 14px 11px 42px;
+            border: 1.5px solid var(--border); border-radius: 10px;
+            font-family: sans-serif; font-size: 0.9rem; color: var(--ink);
+            background: var(--bg); outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .search-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(61,111,248,0.1); background: var(--white); }
+        .search-input::placeholder { color: var(--muted); }
+
+        .sort-select {
+            padding: 11px 36px 11px 14px;
+            border: 1.5px solid var(--border); border-radius: 10px;
+            font-family: sans-serif; font-size: 0.88rem; color: var(--ink2); font-weight: 600;
+            background: var(--bg) url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center;
+            -webkit-appearance: none; appearance: none; outline: none; cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .sort-select:focus { border-color: var(--blue); }
+
+        .filter-toggle-btn {
+            display: none; align-items: center; gap: 7px;
+            padding: 11px 18px; border: 1.5px solid var(--border); border-radius: 10px;
+            font-family: sans-serif; font-size: 0.88rem; font-weight: 600; color: var(--ink2);
+            background: var(--bg); cursor: pointer; transition: border-color 0.2s, background 0.2s; white-space: nowrap;
+        }
+        .filter-toggle-btn:hover { border-color: var(--blue); background: var(--blue-soft); color: var(--blue); }
+        .filter-badge { background: var(--blue); color: #fff; font-size: 0.65rem; font-weight: 800; padding: 1px 6px; border-radius: 20px; }
+
+        /* Active filter chips */
+        .active-chips { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+        .active-chips:empty { display: none; }
+        .chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: var(--blue-soft); color: var(--blue); border: 1px solid rgba(61,111,248,0.25);
+            border-radius: 20px; padding: 4px 10px; font-family: sans-serif; font-size: 0.75rem; font-weight: 600;
+            cursor: pointer; transition: background 0.18s;
+        }
+        .chip:hover { background: #dde8ff; }
+        .chip-x { font-size: 0.85rem; font-weight: 700; line-height: 1; margin-left: 2px; }
+        .clear-all-btn { font-family: sans-serif; font-size: 0.75rem; font-weight: 700; color: var(--red); background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: background 0.18s; }
+        .clear-all-btn:hover { background: #fff1f2; }
+
+        /* ═══ MAIN LAYOUT ═══ */
+        .inv-layout { display: flex; max-width: 1400px; margin: 0 auto; padding: 28px clamp(12px,3vw,48px); gap: 28px; align-items: flex-start; }
+
+        /* ═══ SIDEBAR ═══ */
+        .sidebar {
+            flex: 0 0 var(--sidebar-w); position: sticky; top: 148px;
+            max-height: calc(100vh - 170px); overflow-y: auto;
+        }
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+        .filter-group { margin-bottom: 28px; }
+        .filter-group-title {
+            font-family: sans-serif; font-size: 0.72rem; font-weight: 800;
+            letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+            margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .filter-reset { font-size: 0.72rem; font-weight: 700; color: var(--blue); background: none; border: none; cursor: pointer; padding: 0; text-transform: none; letter-spacing: 0; }
+
+        /* Checkbox filters */
+        .filter-option { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; cursor: pointer; }
+        .filter-option input[type="checkbox"] { display: none; }
+        .filter-checkbox {
+            width: 18px; height: 18px; border: 1.5px solid var(--border); border-radius: 5px;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+            transition: background 0.18s, border-color 0.18s;
+        }
+        .filter-option input:checked ~ .filter-checkbox { background: var(--blue); border-color: var(--blue); }
+        .filter-option input:checked ~ .filter-checkbox::after { content: ''; width: 5px; height: 9px; border: 2px solid #fff; border-top: none; border-left: none; transform: rotate(45deg) translate(-1px,-1px); display: block; }
+        .filter-label { font-family: sans-serif; font-size: 0.86rem; color: var(--ink2); font-weight: 500; }
+        .filter-count { font-family: sans-serif; font-size: 0.72rem; color: var(--muted); margin-left: auto; }
+
+        /* Price range slider */
+        .price-range-display { display: flex; justify-content: space-between; font-family: sans-serif; font-size: 0.8rem; font-weight: 700; color: var(--ink2); margin-bottom: 10px; }
+        .range-slider { width: 100%; height: 4px; appearance: none; background: linear-gradient(to right, var(--blue) 0%, var(--blue) 60%, var(--border) 60%); border-radius: 4px; outline: none; cursor: pointer; }
+        .range-slider::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; background: var(--white); border: 2.5px solid var(--blue); border-radius: 50%; box-shadow: 0 2px 8px rgba(61,111,248,0.25); cursor: pointer; }
+
+        /* Color swatches */
+        .color-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+        .color-swatch {
+            width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+            border: 2.5px solid transparent; transition: border-color 0.18s, transform 0.15s;
+            position: relative;
+        }
+        .color-swatch:hover { transform: scale(1.12); }
+        .color-swatch.active { border-color: var(--blue); }
+        .color-swatch::after { content: attr(data-name); position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-family: sans-serif; font-size: 0.62rem; color: var(--muted); white-space: nowrap; opacity: 0; transition: opacity 0.15s; pointer-events: none; }
+        .color-swatch:hover::after { opacity: 1; }
+
+        /* Availability pills */
+        .avail-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+        .avail-pill {
+            padding: 6px 12px; border: 1.5px solid var(--border); border-radius: 20px;
+            font-family: sans-serif; font-size: 0.78rem; font-weight: 600; color: var(--muted);
+            cursor: pointer; transition: all 0.18s;
+        }
+        .avail-pill.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+        .avail-pill:hover:not(.active) { border-color: var(--blue); color: var(--blue); }
+
+        /* Divider */
+        .sidebar-divider { height: 1px; background: var(--border); margin: 6px 0 28px; }
+
+        /* ═══ MAIN CONTENT ═══ */
+        .inv-main { flex: 1; min-width: 0; }
+        .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .results-count { font-family: sans-serif; font-size: 0.9rem; color: var(--muted); font-weight: 500; }
+        .results-count strong { color: var(--ink); font-weight: 700; }
+        .view-toggle { display: flex; gap: 4px; }
+        .view-btn { width: 36px; height: 36px; border: 1.5px solid var(--border); border-radius: 8px; background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--muted); transition: all 0.18s; }
+        .view-btn.active { background: var(--blue-soft); border-color: var(--blue); color: var(--blue); }
+
+        /* ═══ CAR CARDS GRID ═══ */
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%,300px),1fr)); gap: clamp(14px,2vw,22px); }
+        .cards-grid.list-view { grid-template-columns: 1fr; }
+
+        .car-card {
+            background: var(--white); border: 1.5px solid var(--border);
+            border-radius: var(--card-radius); overflow: hidden;
+            display: flex; flex-direction: column;
+            transition: box-shadow 0.28s, transform 0.22s, border-color 0.22s;
+            position: relative;
+        }
+        .car-card:hover { box-shadow: 0 12px 48px rgba(0,0,0,0.1); transform: translateY(-4px); border-color: rgba(61,111,248,0.2); }
+        .cards-grid.list-view .car-card { flex-direction: row; }
+
+        /* Card badges */
+        .card-badges { position: absolute; top: 12px; left: 12px; z-index: 3; display: flex; flex-direction: column; gap: 5px; }
+        .badge {
+            display: inline-block; padding: 3px 10px; border-radius: 20px;
+            font-family: sans-serif; font-size: 0.64rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+        }
+        .badge-new { background: var(--blue); color: #fff; }
+        .badge-deal { background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
+        .badge-instock { background: #f0fdf4; color: var(--green); border: 1px solid #bbf7d0; }
+        .badge-limited { background: #fff1f2; color: var(--red); border: 1px solid #fecdd3; }
+        .badge-popular { background: #faf5ff; color: #7c3aed; border: 1px solid #ddd6fe; }
+
+        /* Wishlist btn */
+        .card-wishlist {
+            position: absolute; top: 12px; right: 12px; z-index: 3;
+            width: 32px; height: 32px; background: rgba(255,255,255,0.9);
+            border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: all 0.2s; backdrop-filter: blur(4px);
+        }
+        .card-wishlist:hover { background: #fff; transform: scale(1.1); }
+        .card-wishlist.liked { color: var(--red); }
+
+        /* Card image */
+        .card-img-wrap { position: relative; height: clamp(160px,22vw,210px); overflow: hidden; background: var(--bg); cursor: pointer; }
+        .cards-grid.list-view .card-img-wrap { height: auto; width: clamp(220px,30%,300px); flex-shrink: 0; }
+        .card-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.5s ease; }
+        .car-card:hover .card-img { transform: scale(1.06); }
+
+        /* Card body */
+        .card-body { padding: clamp(14px,2vw,20px); display: flex; flex-direction: column; gap: 10px; flex: 1; }
+        .card-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+        .card-category { font-family: sans-serif; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue); }
+        .card-rating { display: flex; align-items: center; gap: 4px; }
+        .card-stars { color: #f59e0b; font-size: 0.78rem; letter-spacing: 1px; }
+        .card-rating-val { font-family: sans-serif; font-size: 0.75rem; font-weight: 700; color: var(--ink2); }
+        .card-rating-cnt { font-family: sans-serif; font-size: 0.68rem; color: var(--muted); }
+
+        .card-name { font-family: 'Georgia', serif; font-size: clamp(1.1rem,1.8vw,1.35rem); font-weight: 700; color: var(--ink); line-height: 1.15; letter-spacing: -0.01em; }
+        .card-desc { font-family: sans-serif; font-size: 0.8rem; color: var(--muted); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+        /* Spec chips */
+        .card-specs { display: flex; gap: 6px; flex-wrap: wrap; }
+        .spec-chip {
+            display: flex; align-items: center; gap: 5px;
+            background: var(--bg); border: 1px solid var(--border);
+            border-radius: 6px; padding: 4px 9px;
+            font-family: sans-serif; font-size: 0.72rem; font-weight: 600; color: var(--ink2);
+        }
+        .spec-chip svg { color: var(--blue); flex-shrink: 0; }
+
+        /* Price row */
+        .card-price-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; margin-top: auto; padding-top: 4px; }
+        .card-price { display: flex; flex-direction: column; gap: 2px; }
+        .price-from { font-family: sans-serif; font-size: 0.65rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+        .price-main { font-family: sans-serif; font-size: clamp(1.1rem,1.8vw,1.35rem); font-weight: 800; color: var(--ink); line-height: 1; }
+        .price-savings { font-family: sans-serif; font-size: 0.7rem; font-weight: 700; color: var(--green); }
+        .price-apr { font-family: sans-serif; font-size: 0.7rem; font-weight: 700; color: var(--blue); background: var(--blue-soft); padding: 2px 7px; border-radius: 4px; }
+
+        /* Card actions */
+        .card-actions { display: flex; gap: 8px; margin-top: 4px; }
+        .card-btn-order { flex: 1; padding: 10px; background: var(--blue); color: #fff; border: none; border-radius: 8px; font-family: sans-serif; font-size: 0.82rem; font-weight: 700; cursor: pointer; text-decoration: none; text-align: center; transition: background 0.2s, transform 0.15s; }
+        .card-btn-order:hover { background: var(--blue-dark); transform: translateY(-1px); }
+        .card-btn-more { padding: 10px 14px; background: transparent; color: var(--ink2); border: 1.5px solid var(--border); border-radius: 8px; font-family: sans-serif; font-size: 0.82rem; font-weight: 700; cursor: pointer; text-decoration: none; text-align: center; transition: all 0.2s; white-space: nowrap; }
+        .card-btn-more:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
+
+        /* ═══ ENERGY & CHARGING CARD variants ═══ */
+        .energy-card .card-img-wrap,
+        .charging-card .card-img-wrap { background: #1a2744; }
+        .energy-card .card-name,
+        .charging-card .card-name { font-family: sans-serif; font-weight: 800; }
+
+        /* ═══ EMPTY STATE ═══ */
+        .empty-state { grid-column: 1 / -1; text-align: center; padding: 64px 24px; }
+        .empty-icon { font-size: 3.5rem; margin-bottom: 16px; }
+        .empty-state h3 { font-family: 'Georgia', serif; font-size: 1.4rem; color: var(--ink); margin-bottom: 8px; }
+        .empty-state p { font-family: sans-serif; font-size: 0.88rem; color: var(--muted); line-height: 1.6; max-width: 340px; margin: 0 auto 20px; }
+
+        /* ═══ MOBILE SIDEBAR OVERLAY ═══ */
+        .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; opacity: 0; transition: opacity 0.3s; }
+        .sidebar-overlay.visible { opacity: 1; }
+
+        /* ═══ RESPONSIVE ═══ */
+        @media (max-width: 1024px) {
+            :root { --sidebar-w: 240px; }
+            .cards-grid { grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); }
+        }
+        @media (max-width: 860px) {
+            .filter-toggle-btn { display: flex; }
+            .inv-layout { padding: 20px 16px; }
+            .sidebar {
+                position: fixed; top: 0; left: -310px; width: 290px; height: 100vh;
+                background: var(--white); z-index: 210; padding: 20px 20px 40px;
+                overflow-y: auto; transition: left 0.35s cubic-bezier(0.77,0,0.18,1);
+                box-shadow: none;
+            }
+            .sidebar.open { left: 0; box-shadow: 4px 0 32px rgba(0,0,0,0.15); }
+            .sidebar-close-btn { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+            .sidebar-close-btn span { font-family: sans-serif; font-size: 1rem; font-weight: 700; color: var(--ink); }
+            .sidebar-close-x { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--muted); padding: 0 4px; }
+            .sidebar-overlay { display: block; }
+        }
+        @media (max-width: 600px) {
+            .cards-grid { grid-template-columns: 1fr; }
+            .cards-grid.list-view .car-card { flex-direction: column; }
+            .cards-grid.list-view .card-img-wrap { width: 100%; height: 200px; }
+            .hero-stats { display: none; }
+            .results-header { flex-direction: column; align-items: flex-start; }
+        }
+
+        /* ── Sidebar close btn hidden on desktop ── */
+        .sidebar-close-btn { display: none; }
+        @media (max-width: 860px) { .sidebar-close-btn { display: flex; } }
+
+        /* ═══════════════════════════════════════════
+           PRODUCT DETAIL MODAL
+        ═══════════════════════════════════════════ */
+
+        /* Backdrop */
+        .modal-backdrop {
+            position: fixed; inset: 0; z-index: 900;
+            background: rgba(10,14,23,0.72);
+            backdrop-filter: blur(6px);
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .modal-backdrop.open { opacity: 1; visibility: visible; }
+
+        /* Modal box */
+        .modal {
+            background: var(--white); border-radius: 20px;
+            width: 100%; max-width: 980px; max-height: 92vh;
+            overflow: hidden; display: flex; flex-direction: column;
+            box-shadow: 0 32px 80px rgba(0,0,0,0.35);
+            transform: translateY(28px) scale(0.97);
+            transition: transform 0.35s cubic-bezier(0.22,1,0.36,1);
+            position: relative;
+        }
+        .modal-backdrop.open .modal { transform: translateY(0) scale(1); }
+
+        /* Close button */
+        .modal-close {
+            position: absolute; top: 16px; right: 16px; z-index: 10;
+            width: 36px; height: 36px; border-radius: 50%;
+            background: rgba(255,255,255,0.92); border: 1.5px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 1.1rem; color: var(--ink2);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: background 0.18s, transform 0.18s;
+        }
+        .modal-close:hover { background: #fff; transform: scale(1.08); }
+
+        /* Two-column layout */
+        .modal-body {
+            display: grid; grid-template-columns: 1fr 1fr;
+            overflow: hidden; flex: 1; min-height: 0;
+        }
+
+        /* ── LEFT: Gallery ── */
+        .modal-gallery { background: #0d1117; display: flex; flex-direction: column; }
+
+        .gallery-main-wrap {
+            flex: 1; position: relative; overflow: hidden; min-height: 280px;
+        }
+        .gallery-main-img {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            object-fit: cover; display: block;
+            transition: opacity 0.4s ease, transform 0.5s ease;
+        }
+        .gallery-main-img.fade-out { opacity: 0; transform: scale(1.04); }
+
+        /* Gallery thumbnails */
+        .gallery-thumbs {
+            display: flex; gap: 8px; padding: 12px 14px;
+            background: rgba(0,0,0,0.4); overflow-x: auto;
+        }
+        .gallery-thumbs::-webkit-scrollbar { height: 3px; }
+        .gallery-thumbs::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 3px; }
+        .gallery-thumb {
+            width: 58px; height: 42px; flex-shrink: 0; border-radius: 6px; overflow: hidden;
+            cursor: pointer; border: 2px solid transparent;
+            transition: border-color 0.2s, opacity 0.2s;
+            opacity: 0.55;
+        }
+        .gallery-thumb.active { border-color: var(--blue); opacity: 1; }
+        .gallery-thumb:hover:not(.active) { opacity: 0.85; }
+        .gallery-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+        /* ── RIGHT: Details panel ── */
+        .modal-details {
+            overflow-y: auto; display: flex; flex-direction: column;
+        }
+        .modal-details::-webkit-scrollbar { width: 4px; }
+        .modal-details::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+        /* Modal tab bar */
+        .modal-tabs {
+            display: flex; border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; background: var(--white); z-index: 5;
+            padding: 0 24px;
+        }
+        .modal-tab {
+            font-family: sans-serif; font-size: 0.78rem; font-weight: 700;
+            color: var(--muted); padding: 14px 12px;
+            border: none; background: none; cursor: pointer;
+            border-bottom: 2.5px solid transparent; margin-bottom: -1px;
+            transition: color 0.2s, border-color 0.2s; white-space: nowrap;
+        }
+        .modal-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+        .modal-tab:hover:not(.active) { color: var(--ink2); }
+
+        /* Modal tab panels */
+        .modal-panel { display: none; padding: 20px 24px 28px; flex-direction: column; gap: 20px; }
+        .modal-panel.active { display: flex; }
+
+        /* Header block inside panel */
+        .modal-header-block { display: flex; flex-direction: column; gap: 6px; }
+        .modal-category-tag { font-family: sans-serif; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blue); }
+        .modal-name { font-family: 'Georgia', serif; font-size: clamp(1.2rem,2vw,1.6rem); font-weight: 700; color: var(--ink); line-height: 1.15; letter-spacing: -0.01em; }
+        .modal-rating-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .modal-stars { color: #f59e0b; font-size: 0.9rem; }
+        .modal-rating-val { font-family: sans-serif; font-size: 0.82rem; font-weight: 700; color: var(--ink2); }
+        .modal-review-cnt { font-family: sans-serif; font-size: 0.78rem; color: var(--muted); }
+        .modal-desc { font-family: sans-serif; font-size: 0.86rem; color: var(--muted); line-height: 1.7; }
+
+        /* Price row in modal */
+        .modal-price-row {
+            display: flex; align-items: flex-end; justify-content: space-between;
+            background: var(--bg); border-radius: 12px; padding: 16px 18px; gap: 10px;
+        }
+        .modal-price-main { font-family: sans-serif; font-size: 1.6rem; font-weight: 800; color: var(--ink); line-height: 1; }
+        .modal-price-sub { font-family: sans-serif; font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+        .modal-apr-pill { background: var(--blue-soft); color: var(--blue); font-family: sans-serif; font-size: 0.72rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+        .modal-avail-pill { font-family: sans-serif; font-size: 0.72rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+
+        /* Color selector */
+        .modal-section-label { font-family: sans-serif; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 10px; }
+        .modal-color-selected { font-weight: 700; color: var(--ink); }
+        .modal-colors { display: flex; gap: 10px; flex-wrap: wrap; }
+        .modal-color-btn {
+            width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+            border: 2.5px solid transparent; outline: none;
+            transition: border-color 0.18s, transform 0.15s, box-shadow 0.15s;
+            position: relative;
+        }
+        .modal-color-btn:hover { transform: scale(1.12); box-shadow: 0 2px 12px rgba(0,0,0,0.2); }
+        .modal-color-btn.active { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(61,111,248,0.22); }
+
+        /* Config selector (trim/variant) */
+        .modal-configs { display: flex; flex-direction: column; gap: 8px; }
+        .modal-config-btn {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px;
+            cursor: pointer; background: var(--white);
+            transition: border-color 0.18s, background 0.18s;
+        }
+        .modal-config-btn.active { border-color: var(--blue); background: var(--blue-soft); }
+        .modal-config-btn:hover:not(.active) { border-color: #aac0ff; }
+        .modal-config-name { font-family: sans-serif; font-size: 0.86rem; font-weight: 700; color: var(--ink); }
+        .modal-config-detail { font-family: sans-serif; font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+        .modal-config-price { font-family: sans-serif; font-size: 0.88rem; font-weight: 800; color: var(--blue); white-space: nowrap; }
+
+        /* CTA row */
+        .modal-cta-row { display: flex; gap: 10px; flex-wrap: wrap; padding-top: 4px; }
+        .modal-btn-order { flex: 1; min-width: 120px; padding: 13px; background: var(--blue); color: #fff; border: none; border-radius: 10px; font-family: sans-serif; font-size: 0.9rem; font-weight: 700; cursor: pointer; text-decoration: none; text-align: center; transition: background 0.2s, transform 0.15s; }
+        .modal-btn-order:hover { background: var(--blue-dark); transform: translateY(-1px); }
+        .modal-btn-outline { padding: 13px 18px; background: transparent; color: var(--ink2); border: 1.5px solid var(--border); border-radius: 10px; font-family: sans-serif; font-size: 0.9rem; font-weight: 700; cursor: pointer; text-decoration: none; text-align: center; transition: all 0.2s; }
+        .modal-btn-outline:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
+
+        /* ── SPECS TABLE ── */
+        .specs-section-heading {
+            font-family: sans-serif; font-size: 0.72rem; font-weight: 800;
+            text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted);
+            margin: 4px 0 12px;
+        }
+        .specs-group { display: flex; flex-direction: column; gap: 0; }
+        .spec-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0; border-bottom: 1px solid var(--border); gap: 16px;
+        }
+        .spec-row:last-child { border-bottom: none; }
+        .spec-key { font-family: sans-serif; font-size: 0.82rem; color: var(--muted); font-weight: 500; }
+        .spec-val { font-family: sans-serif; font-size: 0.84rem; color: var(--ink); font-weight: 700; text-align: right; }
+        .spec-highlight { color: var(--blue); }
+
+        /* ── FEATURES LIST ── */
+        .features-list { display: flex; flex-direction: column; gap: 12px; }
+        .feature-item {
+            display: flex; gap: 14px; align-items: flex-start;
+            padding: 14px; background: var(--bg); border-radius: 10px;
+            border: 1px solid var(--border);
+            transition: border-color 0.18s, box-shadow 0.18s;
+        }
+        .feature-item:hover { border-color: rgba(61,111,248,0.3); box-shadow: 0 2px 12px rgba(61,111,248,0.07); }
+        .feature-emoji { font-size: 1.3rem; flex-shrink: 0; margin-top: 1px; }
+        .feature-text-wrap { flex: 1; }
+        .feature-item-title { font-family: sans-serif; font-size: 0.86rem; font-weight: 700; color: var(--ink); margin-bottom: 3px; }
+        .feature-item-desc  { font-family: sans-serif; font-size: 0.78rem; color: var(--muted); line-height: 1.55; }
+
+        /* Card click cursor */
+        .car-card { cursor: pointer; }
+
+        /* ── Responsive modal ── */
+        @media (max-width: 760px) {
+            .modal-body { grid-template-columns: 1fr; grid-template-rows: 280px 1fr; }
+            .modal-gallery { min-height: 0; }
+            .gallery-main-wrap { min-height: 0; }
+            .modal { max-height: 96vh; border-radius: 16px; }
+            .modal-backdrop { padding: 10px; align-items: flex-end; }
+        }
+        @media (max-width: 480px) {
+            .modal-body { grid-template-rows: 220px 1fr; }
+            .modal-tabs { padding: 0 14px; overflow-x: auto; }
+            .modal-panel { padding: 16px 16px 24px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ═══ NAV ═══ -->
+    <nav>
+        <img src="images/tesla logo.png" alt="Tesla Logo" class="logo">
+        <ul class="nav-menu" id="nav-menu">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="investments.html">Investments</a></li>
+            <li><a href="inventory.html">Inventory</a></li>
+            <li><button>Get started</button></li>
+        </ul>
+        <div class="hamburger" id="hamburger">
+            <span></span><span></span><span></span>
+        </div>
+        <a href="auth.html"><button class="desktop-btn">Get started</button></a>
+    </nav>
+
+    <!-- ═══ PAGE HERO ═══ -->
+    <section class="inv-page-hero">
+        <div class="hero-inner">
+            <div class="hero-top">
+                <div class="hero-text">
+                    <span class="hero-eyebrow">Browse & Order</span>
+                    <h1 class="hero-heading">Tesla Inventory</h1>
+                    <p class="hero-sub">Find your perfect Tesla — in stock and ready for delivery. Every model, every configuration, all in one place.</p>
+                </div>
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <div class="hero-stat-num" id="hero-total">18</div>
+                        <div class="hero-stat-lbl">Total Listings</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-num">48hr</div>
+                        <div class="hero-stat-lbl">Avg. Delivery</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-num">$0</div>
+                        <div class="hero-stat-lbl">Delivery Fee</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Tabs -->
+            <div class="category-tabs">
+                <button class="cat-tab active" data-category="all">
+                    All <span class="tab-count" id="tab-all">18</span>
+                </button>
+                <button class="cat-tab" data-category="vehicles">
+                    🚗 Vehicles <span class="tab-count" id="tab-vehicles">10</span>
+                </button>
+                <button class="cat-tab" data-category="energy">
+                    ⚡ Energy <span class="tab-count" id="tab-energy">4</span>
+                </button>
+                <button class="cat-tab" data-category="charging">
+                    🔌 Charging <span class="tab-count" id="tab-charging">4</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ SEARCH + SORT BAR ═══ -->
+    <div class="search-bar-wrap">
+        <div class="search-bar-inner">
+            <div class="search-field">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="text" class="search-input" id="searchInput" placeholder="Search by model, feature, or keyword…">
+            </div>
+            <select class="sort-select" id="sortSelect">
+                <option value="default">Sort: Featured</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="range">Longest Range</option>
+                <option value="rating">Top Rated</option>
+            </select>
+            <button class="filter-toggle-btn" id="filterToggle">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+                Filters
+                <span class="filter-badge" id="filterBadge" style="display:none">0</span>
+            </button>
+        </div>
+        <!-- Active filter chips -->
+        <div class="search-bar-inner" style="padding-top:0">
+            <div class="active-chips" id="activeChips"></div>
+        </div>
+    </div>
+
+    <!-- Sidebar overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- ═══ MAIN LAYOUT ═══ -->
+    <div class="inv-layout">
+
+        <!-- ═══ SIDEBAR FILTERS ═══ -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-close-btn">
+                <span>Filters</span>
+                <button class="sidebar-close-x" id="closeSidebar">✕</button>
+            </div>
+
+            <!-- Model -->
+            <div class="filter-group">
+                <div class="filter-group-title">
+                    Model
+                    <button class="filter-reset" data-group="model">Clear</button>
+                </div>
+                <label class="filter-option"><input type="checkbox" name="model" value="Model 3"><span class="filter-checkbox"></span><span class="filter-label">Model 3</span><span class="filter-count">3</span></label>
+                <label class="filter-option"><input type="checkbox" name="model" value="Model Y"><span class="filter-checkbox"></span><span class="filter-label">Model Y</span><span class="filter-count">3</span></label>
+                <label class="filter-option"><input type="checkbox" name="model" value="Model X"><span class="filter-checkbox"></span><span class="filter-label">Model X</span><span class="filter-count">2</span></label>
+                <label class="filter-option"><input type="checkbox" name="model" value="Model S"><span class="filter-checkbox"></span><span class="filter-label">Model S</span><span class="filter-count">2</span></label>
+                <label class="filter-option"><input type="checkbox" name="model" value="Cybertruck"><span class="filter-checkbox"></span><span class="filter-label">Cybertruck</span><span class="filter-count">2</span></label>
+                <label class="filter-option"><input type="checkbox" name="model" value="Powerwall"><span class="filter-checkbox"></span><span class="filter-label">Powerwall</span><span class="filter-count">2</span></label>
+                <label class="filter-option"><input type="checkbox" name="model" value="Supercharger"><span class="filter-checkbox"></span><span class="filter-label">Supercharger</span><span class="filter-count">2</span></label>
+            </div>
+            <div class="sidebar-divider"></div>
+
+            <!-- Price Range -->
+            <div class="filter-group">
+                <div class="filter-group-title">
+                    Price Range
+                    <button class="filter-reset" data-group="price">Clear</button>
+                </div>
+                <div class="price-range-display">
+                    <span>$0</span>
+                    <span id="priceLabel">Up to $120,000</span>
+                </div>
+                <input type="range" class="range-slider" id="priceRange" min="0" max="120000" value="120000" step="1000">
+            </div>
+            <div class="sidebar-divider"></div>
+
+            <!-- Availability -->
+            <div class="filter-group">
+                <div class="filter-group-title">Availability</div>
+                <div class="avail-pills">
+                    <div class="avail-pill active" data-avail="all">All</div>
+                    <div class="avail-pill" data-avail="In Stock">In Stock</div>
+                    <div class="avail-pill" data-avail="Order Now">Order Now</div>
+                    <div class="avail-pill" data-avail="Limited">Limited</div>
+                </div>
+            </div>
+            <div class="sidebar-divider"></div>
+
+            <!-- APR / Deals -->
+            <div class="filter-group">
+                <div class="filter-group-title">Special Offers</div>
+                <label class="filter-option"><input type="checkbox" name="deal" value="apr"><span class="filter-checkbox"></span><span class="filter-label">Low APR Financing</span></label>
+                <label class="filter-option"><input type="checkbox" name="deal" value="heroes"><span class="filter-checkbox"></span><span class="filter-label">Heroes Discount</span></label>
+                <label class="filter-option"><input type="checkbox" name="deal" value="fsd"><span class="filter-checkbox"></span><span class="filter-label">FSD Included</span></label>
+            </div>
+            <div class="sidebar-divider"></div>
+
+            <!-- Colors -->
+            <div class="filter-group">
+                <div class="filter-group-title">
+                    Color
+                    <button class="filter-reset" data-group="color">Clear</button>
+                </div>
+                <div class="color-swatches">
+                    <div class="color-swatch" style="background:#fff;box-shadow:inset 0 0 0 1px #ddd" data-color="White" data-name="Pearl White"></div>
+                    <div class="color-swatch" style="background:#111" data-color="Black" data-name="Midnight Black"></div>
+                    <div class="color-swatch" style="background:#8c8c8c" data-color="Silver" data-name="Silver"></div>
+                    <div class="color-swatch" style="background:#4a6fa5" data-color="Blue" data-name="Deep Blue"></div>
+                    <div class="color-swatch" style="background:#a4191b" data-color="Red" data-name="Ultra Red"></div>
+                    <div class="color-swatch" style="background:#2d4a2d" data-color="Green" data-name="Midnight Green"></div>
+                    <div class="color-swatch" style="background:#c0c0c0;background:linear-gradient(135deg,#c0c0c0,#e8e8e8)" data-color="Stainless" data-name="Stainless Steel"></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ═══ MAIN CONTENT ═══ -->
+        <main class="inv-main">
+            <div class="results-header">
+                <p class="results-count" id="resultsCount"><strong>18</strong> results found</p>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <div class="view-toggle">
+                        <button class="view-btn active" id="gridViewBtn" title="Grid view">
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><rect x="0" y="0" width="6" height="6" rx="1"/><rect x="10" y="0" width="6" height="6" rx="1"/><rect x="0" y="10" width="6" height="6" rx="1"/><rect x="10" y="10" width="6" height="6" rx="1"/></svg>
+                        </button>
+                        <button class="view-btn" id="listViewBtn" title="List view">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARDS GRID -->
+            <div class="cards-grid" id="cardsGrid">
+                <!-- Cards injected by JS -->
+            </div>
+        </main>
+    </div>
+
+    <!-- ═══ PRODUCT DETAIL MODAL ═══ -->
+    <div class="modal-backdrop" id="modalBackdrop">
+        <div class="modal" id="modal" role="dialog" aria-modal="true">
+            <button class="modal-close" id="modalClose" aria-label="Close">✕</button>
+            <div class="modal-body">
+                <!-- LEFT: Gallery -->
+                <div class="modal-gallery">
+                    <div class="gallery-main-wrap">
+                        <img id="galleryMain" src="" alt="" class="gallery-main-img">
+                    </div>
+                    <div class="gallery-thumbs" id="galleryThumbs"></div>
+                </div>
+                <!-- RIGHT: Details -->
+                <div class="modal-details">
+                    <div class="modal-tabs">
+                        <button class="modal-tab active" data-tab="overview">Overview</button>
+                        <button class="modal-tab" data-tab="specs">Specs</button>
+                        <button class="modal-tab" data-tab="features">Features</button>
+                        <button class="modal-tab" data-tab="config">Configure</button>
+                    </div>
+                    <!-- OVERVIEW -->
+                    <div class="modal-panel active" id="panel-overview">
+                        <div class="modal-header-block">
+                            <span class="modal-category-tag" id="m-category"></span>
+                            <div class="modal-name" id="m-name"></div>
+                            <div class="modal-rating-row">
+                                <span class="modal-stars" id="m-stars"></span>
+                                <span class="modal-rating-val" id="m-rating"></span>
+                                <span class="modal-review-cnt" id="m-reviews"></span>
+                            </div>
+                        </div>
+                        <p class="modal-desc" id="m-desc"></p>
+                        <div class="modal-price-row">
+                            <div>
+                                <div class="modal-price-main" id="m-price"></div>
+                                <div class="modal-price-sub" id="m-price-sub"></div>
+                            </div>
+                            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                                <span class="modal-avail-pill" id="m-avail"></span>
+                                <span class="modal-apr-pill" id="m-apr"></span>
+                            </div>
+                        </div>
+                        <div id="m-color-section">
+                            <div class="modal-section-label">Color — <span class="modal-color-selected" id="m-color-name">Pearl White</span></div>
+                            <div class="modal-colors" id="m-colors"></div>
+                        </div>
+                        <div class="modal-cta-row">
+                            <a href="inventory.html" class="modal-btn-order">Order Now</a>
+                            <a href="#" class="modal-btn-outline" id="m-learn-more">Full Details →</a>
+                        </div>
+                    </div>
+                    <!-- SPECS -->
+                    <div class="modal-panel" id="panel-specs">
+                        <div class="modal-name" id="m-specs-name" style="font-size:1.1rem;margin-bottom:4px"></div>
+                        <div id="m-specs-content"></div>
+                    </div>
+                    <!-- FEATURES -->
+                    <div class="modal-panel" id="panel-features">
+                        <div class="modal-name" id="m-feat-name" style="font-size:1.1rem;margin-bottom:4px"></div>
+                        <div class="features-list" id="m-features-list"></div>
+                    </div>
+                    <!-- CONFIGURE -->
+                    <div class="modal-panel" id="panel-config">
+                        <div class="modal-section-label" style="margin-bottom:4px">Select Configuration</div>
+                        <div class="modal-configs" id="m-configs"></div>
+                        <div class="modal-cta-row" style="margin-top:8px">
+                            <a href="inventory.html" class="modal-btn-order">Order Selected Config</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+
+        // ─── HAMBURGER NAV ───────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function () {
+        const hamburger = document.getElementById('hamburger');
+        const navMenu   = document.getElementById('nav-menu');
+
+        hamburger.addEventListener('click', function () {
+            hamburger.classList.toggle('active');
+            navMenu.classList.toggle('open');
+        });
+
+        navMenu.querySelectorAll('a').forEach(function (link) {
+            link.addEventListener('click', function () {
+                hamburger.classList.remove('active');
+                navMenu.classList.remove('open');
+            });
+        });
+    });
+        
+
+    // ═══════════════════════════════════════════════════════════════
+    // INVENTORY DATA
+    // ═══════════════════════════════════════════════════════════════
+    const inventory = [
+        // ── VEHICLES ────────────────────────────────────────────
+        {
+            id: 1, category: 'vehicles', model: 'Model 3',
+            name: 'Model 3 Long Range AWD',
+            desc: 'The benchmark electric sedan. 390 miles of range, all-wheel drive, and an immersive 15" touchscreen.',
+            image: 'images/secondcarousel2.avif',
+            price: 45990, priceDisplay: '$45,990',
+            apr: '0.99% APR',
+            range: '390 mi', accel: '4.2s', power: '346 hp',
+            rating: 4.9, reviews: 2841,
+            color: 'Blue', availability: 'In Stock',
+            badges: ['new', 'apr'],
+            learnMore: 'vehicle-model3.html',
+        },
+        {
+            id: 2, category: 'vehicles', model: 'Model 3',
+            name: 'Model 3 RWD',
+            desc: 'Outstanding range and efficiency in rear-wheel drive. The most affordable way into Tesla ownership.',
+            image: 'images/Homepage-Promo-Model-3-Desktop-US-CA-MX.avif',
+            price: 38990, priceDisplay: '$38,990',
+            apr: '0.99% APR',
+            range: '358 mi', accel: '5.8s', power: '283 hp',
+            rating: 4.8, reviews: 4122,
+            color: 'White', availability: 'In Stock',
+            badges: ['apr', 'heroes'],
+            learnMore: 'vehicle-model3.html',
+        },
+        {
+            id: 3, category: 'vehicles', model: 'Model 3',
+            name: 'Model 3 Performance',
+            desc: 'Track-ready from the factory. 455 hp, carbon spoiler, and 0–60 in 3.1 seconds.',
+            image: 'images/secondcarousel2.avif',
+            price: 50990, priceDisplay: '$50,990',
+            apr: null,
+            range: '315 mi', accel: '3.1s', power: '455 hp',
+            rating: 4.9, reviews: 1087,
+            color: 'Black', availability: 'Order Now',
+            badges: ['popular'],
+            learnMore: 'vehicle-model3.html',
+        },
+        {
+            id: 4, category: 'vehicles', model: 'Model Y',
+            name: 'Model Y Long Range AWD',
+            desc: "The world's best-selling EV. Seven seats available, 310-mile range, and Tesla's signature performance.",
+            image: 'images/secondcarousel3.avif',
+            price: 49990, priceDisplay: '$49,990',
+            apr: '0% APR',
+            range: '310 mi', accel: '4.8s', power: '384 hp',
+            rating: 4.9, reviews: 6203,
+            color: 'Silver', availability: 'In Stock',
+            badges: ['apr', 'popular'],
+            learnMore: 'vehicle-modely.html',
+        },
+        {
+            id: 5, category: 'vehicles', model: 'Model Y',
+            name: 'Model Y RWD',
+            desc: 'Versatile SUV with 330 miles of range and a spacious cabin. Eligible for the $7,500 federal tax credit.',
+            image: 'images/Homepage-Promo-Meet-Model-Y-Desktop.avif',
+            price: 43990, priceDisplay: '$43,990',
+            apr: '0% APR',
+            range: '330 mi', accel: '5.9s', power: '299 hp',
+            rating: 4.8, reviews: 3891,
+            color: 'White', availability: 'In Stock',
+            badges: ['apr', 'heroes'],
+            savings: 'Save $7,500',
+            learnMore: 'vehicle-modely.html',
+        },
+        {
+            id: 6, category: 'vehicles', model: 'Model Y',
+            name: 'Model Y Performance',
+            desc: 'SUV meets supercar. 456 hp, lowered sport suspension, and carbon fiber spoiler.',
+            image: 'images/secondcarousel3.avif',
+            price: 55990, priceDisplay: '$55,990',
+            apr: null,
+            range: '285 mi', accel: '3.5s', power: '456 hp',
+            rating: 4.9, reviews: 2104,
+            color: 'Red', availability: 'Limited',
+            badges: ['limited'],
+            learnMore: 'vehicle-modely.html',
+        },
+        {
+            id: 7, category: 'vehicles', model: 'Model X',
+            name: 'Model X Long Range',
+            desc: 'Iconic Falcon Wing doors, 7 seats, and 335 miles of range. The most capable family SUV ever built.',
+            image: 'images/secondcarousel4.avif',
+            price: 79990, priceDisplay: '$79,990',
+            apr: null,
+            range: '335 mi', accel: '3.8s', power: '670 hp',
+            rating: 4.8, reviews: 1520,
+            color: 'Black', availability: 'Order Now',
+            badges: ['new'],
+            learnMore: 'vehicle-modelx.html',
+        },
+        {
+            id: 8, category: 'vehicles', model: 'Model X',
+            name: 'Model X Plaid',
+            desc: 'Tri-motor insanity. 1,020 hp and a 0–60 in 2.5 seconds — the quickest SUV ever made.',
+            image: 'images/secondcarousel4.avif',
+            price: 99990, priceDisplay: '$99,990',
+            apr: null,
+            range: '326 mi', accel: '2.5s', power: '1,020 hp',
+            rating: 5.0, reviews: 634,
+            color: 'Silver', availability: 'Limited',
+            badges: ['limited', 'popular'],
+            learnMore: 'vehicle-modelx.html',
+        },
+        {
+            id: 9, category: 'vehicles', model: 'Model S',
+            name: 'Model S Long Range',
+            desc: '405 miles of range — more than any other EV. Luxury redefined with a 17" cinematic display.',
+            image: 'images/secondcarousel5.avif',
+            price: 74990, priceDisplay: '$74,990',
+            apr: null,
+            range: '405 mi', accel: '3.1s', power: '670 hp',
+            rating: 4.9, reviews: 1803,
+            color: 'White', availability: 'In Stock',
+            badges: ['new'],
+            learnMore: 'vehicle-models.html',
+        },
+        {
+            id: 10, category: 'vehicles', model: 'Model S',
+            name: 'Model S Plaid',
+            desc: "1,020 hp. 0–60 in 1.99 seconds. The world's quickest production car wears a suit.",
+            image: 'images/secondcarousel5.avif',
+            price: 89990, priceDisplay: '$89,990',
+            apr: null,
+            range: '396 mi', accel: '1.99s', power: '1,020 hp',
+            rating: 5.0, reviews: 912,
+            color: 'Black', availability: 'Order Now',
+            badges: ['popular', 'limited'],
+            learnMore: 'vehicle-models.html',
+        },
+        {
+            id: 11, category: 'vehicles', model: 'Cybertruck',
+            name: 'Cybertruck AWD',
+            desc: 'Ultra-hard stainless steel exoskeleton. Dual motor AWD. 11,000 lb tow capacity. Nothing like it on Earth.',
+            image: 'images/secondcarousel1.avif',
+            price: 79990, priceDisplay: '$79,990',
+            apr: null,
+            range: '340 mi', accel: '4.1s', power: 'Dual Motor',
+            rating: 4.8, reviews: 3440,
+            color: 'Stainless', availability: 'In Stock',
+            badges: ['new', 'heroes'],
+            learnMore: 'vehicle-cybertruck.html',
+        },
+        {
+            id: 12, category: 'vehicles', model: 'Cybertruck',
+            name: 'Cyberbeast',
+            desc: 'Tri-motor. 845 hp. 0–60 in 2.6 sec. The most powerful production truck ever built.',
+            image: 'images/secondcarousel1.avif',
+            price: 99990, priceDisplay: '$99,990',
+            apr: null,
+            range: '320 mi', accel: '2.6s', power: '845 hp',
+            rating: 5.0, reviews: 1204,
+            color: 'Stainless', availability: 'Limited',
+            badges: ['limited', 'popular'],
+            learnMore: 'vehicle-cybertruck.html',
+        },
+
+        // ── ENERGY ──────────────────────────────────────────────
+        {
+            id: 13, category: 'energy', model: 'Powerwall',
+            name: 'Powerwall 3',
+            desc: "Tesla's most powerful home battery. 13.5 kWh capacity, integrated solar inverter, and whole-home backup.",
+            image: 'images/feature2.avif',
+            price: 11500, priceDisplay: '$11,500',
+            apr: null,
+            range: '13.5 kWh', accel: '11.5 kW', power: 'Solar Ready',
+            rating: 4.9, reviews: 4821,
+            color: 'White', availability: 'Order Now',
+            badges: ['new'],
+            learnMore: 'index.html',
+            cardClass: 'energy-card',
+            specLabels: ['Capacity', 'Output', 'Type'],
+        },
+        {
+            id: 14, category: 'energy', model: 'Powerwall',
+            name: 'Powerwall+ Bundle',
+            desc: 'Combine Powerwall 3 with rooftop solar for total energy independence. Store the sun, power everything.',
+            image: 'images/feature1.avif',
+            price: 22000, priceDisplay: '$22,000',
+            apr: null,
+            range: '27 kWh', accel: '23 kW', power: 'Solar + Battery',
+            rating: 4.8, reviews: 1342,
+            color: 'White', availability: 'Order Now',
+            badges: ['popular'],
+            learnMore: 'index.html',
+            cardClass: 'energy-card',
+            specLabels: ['Capacity', 'Output', 'Type'],
+        },
+        {
+            id: 15, category: 'energy', model: 'Solar',
+            name: 'Solar Roof',
+            desc: 'Replace your roof and generate clean energy at the same time. Tesla Solar Roof tiles are durable, beautiful, and efficient.',
+            image: 'images/card1.avif',
+            price: 35000, priceDisplay: 'From $35,000',
+            apr: null,
+            range: '~10 kW', accel: '30+ yr', power: 'Tempered Glass',
+            rating: 4.7, reviews: 892,
+            color: 'Black', availability: 'Order Now',
+            badges: [],
+            learnMore: 'index.html',
+            cardClass: 'energy-card',
+            specLabels: ['Output', 'Warranty', 'Material'],
+        },
+        {
+            id: 16, category: 'energy', model: 'Solar',
+            name: 'Solar Panels',
+            desc: 'Low-profile solar panels that blend with any roof style. Paired with Powerwall for maximum savings.',
+            image: 'images/card1.avif',
+            price: 8500, priceDisplay: 'From $8,500',
+            apr: null,
+            range: '~8 kW', accel: '25 yr', power: 'Monocrystalline',
+            rating: 4.8, reviews: 2104,
+            color: 'Black', availability: 'Order Now',
+            badges: ['heroes'],
+            learnMore: 'index.html',
+            cardClass: 'energy-card',
+            specLabels: ['Output', 'Warranty', 'Type'],
+        },
+
+        // ── CHARGING ────────────────────────────────────────────
+        {
+            id: 17, category: 'charging', model: 'Supercharger',
+            name: 'Wall Connector Gen 3',
+            desc: 'The fastest home charging solution for your Tesla. Up to 44 miles of range per hour added.',
+            image: 'images/feature2.avif',
+            price: 425, priceDisplay: '$425',
+            apr: null,
+            range: '44 mi/hr', accel: '11.5 kW', power: 'Wi-Fi Enabled',
+            rating: 4.9, reviews: 9870,
+            color: 'White', availability: 'In Stock',
+            badges: ['instock'],
+            learnMore: 'index.html',
+            cardClass: 'charging-card',
+            specLabels: ['Speed', 'Power', 'Connectivity'],
+        },
+        {
+            id: 18, category: 'charging', model: 'Supercharger',
+            name: 'Mobile Connector Bundle',
+            desc: 'Charge from virtually any outlet. Includes adapters for NEMA 5-15 and NEMA 14-50. Perfect for travel.',
+            image: 'images/feature2.avif',
+            price: 230, priceDisplay: '$230',
+            apr: null,
+            range: '30 mi/hr', accel: '7.2 kW', power: 'Portable',
+            rating: 4.7, reviews: 5231,
+            color: 'White', availability: 'In Stock',
+            badges: ['instock'],
+            learnMore: 'index.html',
+            cardClass: 'charging-card',
+            specLabels: ['Speed', 'Power', 'Type'],
+        },
+        {
+            id: 19, category: 'charging', model: 'Supercharger',
+            name: 'Supercharger Access (1 Year)',
+            desc: 'Unlimited access to Tesla Supercharger network for 1 full year. Over 2,000 stations across the US.',
+            image: 'images/feature1.avif',
+            price: 299, priceDisplay: '$299/yr',
+            apr: null,
+            range: '250 kW peak', accel: '2,000+ stations', power: 'All Models',
+            rating: 4.9, reviews: 12400,
+            color: 'White', availability: 'In Stock',
+            badges: ['instock', 'popular'],
+            learnMore: 'index.html',
+            cardClass: 'charging-card',
+            specLabels: ['Speed', 'Network', 'Compatible'],
+        },
+        {
+            id: 20, category: 'charging', model: 'Supercharger',
+            name: 'Charge Port Adapter (J1772)',
+            desc: 'Connect to any Level 2 public charging station with this J1772 adapter. Simple, reliable, always in your frunk.',
+            image: 'images/feature2.avif',
+            price: 45, priceDisplay: '$45',
+            apr: null,
+            range: 'Level 2', accel: '19.2 kW max', power: 'Universal',
+            rating: 4.8, reviews: 8100,
+            color: 'Black', availability: 'In Stock',
+            badges: ['instock'],
+            learnMore: 'index.html',
+            cardClass: 'charging-card',
+            specLabels: ['Standard', 'Power', 'Type'],
+        },
+    ];
+
+    // ═══════════════════════════════════════════════════════════════
+    // STATE
+    // ═══════════════════════════════════════════════════════════════
+    let state = {
+        search: '',
+        category: 'all',
+        models: [],
+        maxPrice: 120000,
+        availability: 'all',
+        deals: [],
+        color: null,
+        sort: 'default',
+        view: 'grid',
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // FILTER LOGIC
+    // ═══════════════════════════════════════════════════════════════
+    function filterItems() {
+        let result = [...inventory];
+
+        if (state.category !== 'all') result = result.filter(i => i.category === state.category);
+        if (state.search) {
+            const q = state.search.toLowerCase();
+            result = result.filter(i =>
+                i.name.toLowerCase().includes(q) ||
+                i.desc.toLowerCase().includes(q) ||
+                i.model.toLowerCase().includes(q)
+            );
+        }
+        if (state.models.length) result = result.filter(i => state.models.includes(i.model));
+        result = result.filter(i => i.price <= state.maxPrice);
+        if (state.availability !== 'all') result = result.filter(i => i.availability === state.availability);
+        if (state.deals.includes('apr')) result = result.filter(i => i.apr);
+        if (state.deals.includes('heroes')) result = result.filter(i => i.badges.includes('heroes'));
+        if (state.deals.includes('fsd')) result = result.filter(i => i.category === 'vehicles');
+        if (state.color) result = result.filter(i => i.color === state.color);
+
+        // Sort
+        if (state.sort === 'price-asc') result.sort((a,b) => a.price - b.price);
+        else if (state.sort === 'price-desc') result.sort((a,b) => b.price - a.price);
+        else if (state.sort === 'range') result.sort((a,b) => (parseFloat(b.range)||0) - (parseFloat(a.range)||0));
+        else if (state.sort === 'rating') result.sort((a,b) => b.rating - a.rating);
+
+        return result;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // RENDER
+    // ═══════════════════════════════════════════════════════════════
+    const BADGE_META = {
+        new:      { cls: 'badge-new',     label: 'New' },
+        apr:      { cls: 'badge-deal',    label: 'Low APR' },
+        heroes:   { cls: 'badge-deal',    label: '$500 Off' },
+        instock:  { cls: 'badge-instock', label: 'In Stock' },
+        limited:  { cls: 'badge-limited', label: 'Limited' },
+        popular:  { cls: 'badge-popular', label: 'Popular' },
+    };
+
+    function starStr(rating) {
+        const full = Math.floor(rating);
+        const half = rating % 1 >= 0.5;
+        let s = '★'.repeat(full);
+        if (half) s += '½';
+        return s;
+    }
+
+    function renderCard(item) {
+        const badges = item.badges.slice(0,2).map(b =>
+            `<span class="badge ${BADGE_META[b]?.cls||'badge-new'}">${BADGE_META[b]?.label||b}</span>`
+        ).join('');
+
+        const specLabels = item.specLabels || ['Range', '0–60', 'Power'];
+
+        return `
+        <div class="car-card ${item.cardClass||''}" data-id="${item.id}">
+            <div class="card-badges">${badges}</div>
+            <button class="card-wishlist" onclick="toggleWish(this)" aria-label="Save">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </button>
+            <div class="card-img-wrap" onclick="openProductModal(${item.id})">
+                <img src="${item.image}" alt="${item.name}" class="card-img" loading="lazy">
+            </div>
+            <div class="card-body">
+                <div class="card-meta">
+                    <span class="card-category">${item.category === 'vehicles' ? item.model : item.category.charAt(0).toUpperCase()+item.category.slice(1)}</span>
+                    <div class="card-rating">
+                        <span class="card-stars">${'★'.repeat(Math.floor(item.rating))}</span>
+                        <span class="card-rating-val">${item.rating}</span>
+                        <span class="card-rating-cnt">(${item.reviews.toLocaleString()})</span>
+                    </div>
+                </div>
+                <div class="card-name" onclick="openProductModal(${item.id})" style="cursor:pointer">${item.name}</div>
+                <p class="card-desc">${item.desc}</p>
+                <div class="card-specs">
+                    <div class="spec-chip">
+                        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        ${item.range}
+                    </div>
+                    <div class="spec-chip">
+                        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        ${item.accel}
+                    </div>
+                    <div class="spec-chip">
+                        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                        ${item.power}
+                    </div>
+                </div>
+                <div class="card-price-row">
+                    <div class="card-price">
+                        <span class="price-from">Starting at</span>
+                        <span class="price-main">${item.priceDisplay}</span>
+                        ${item.savings ? `<span class="price-savings">↓ ${item.savings}</span>` : ''}
+                        ${item.apr ? `<span class="price-apr">${item.apr}</span>` : ''}
+                    </div>
+                    <span class="badge ${item.availability === 'In Stock' ? 'badge-instock' : item.availability === 'Limited' ? 'badge-limited' : ''}" style="font-size:0.65rem">${item.availability}</span>
+                </div>
+                <div class="card-actions">
+                    <a href="inventory.html" class="card-btn-order">Order Now</a>
+                    <button class="card-btn-more" onclick="openProductModal(${item.id})">Details</button>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function render() {
+        const filtered = filterItems();
+        const grid = document.getElementById('cardsGrid');
+
+        // Update counts
+        const allCount       = inventory.length;
+        const vehicleCount   = inventory.filter(i=>i.category==='vehicles').length;
+        const energyCount    = inventory.filter(i=>i.category==='energy').length;
+        const chargingCount  = inventory.filter(i=>i.category==='charging').length;
+
+        document.getElementById('tab-all').textContent      = allCount;
+        document.getElementById('tab-vehicles').textContent = vehicleCount;
+        document.getElementById('tab-energy').textContent   = energyCount;
+        document.getElementById('tab-charging').textContent = chargingCount;
+        document.getElementById('hero-total').textContent   = allCount;
+        document.getElementById('resultsCount').innerHTML   = `<strong>${filtered.length}</strong> result${filtered.length!==1?'s':''} found`;
+
+        if (!filtered.length) {
+            grid.innerHTML = `<div class="empty-state">
+                <div class="empty-icon">🔍</div>
+                <h3>No results found</h3>
+                <p>Try adjusting your filters or search term to find what you're looking for.</p>
+                <button class="btn-primary" onclick="clearAll()">Clear All Filters</button>
+            </div>`;
+        } else {
+            grid.innerHTML = filtered.map(renderCard).join('');
+        }
+
+        updateChips();
+        updateFilterBadge();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ACTIVE CHIPS
+    // ═══════════════════════════════════════════════════════════════
+    function updateChips() {
+        const chips = document.getElementById('activeChips');
+        let html = '';
+        if (state.search) html += chip(`Search: "${state.search}"`, ()=>{ state.search=''; document.getElementById('searchInput').value=''; render(); });
+        state.models.forEach(m => html += chip(m, ()=>{ state.models=state.models.filter(x=>x!==m); document.querySelector(`input[name="model"][value="${m}"]`).checked=false; render(); }));
+        if (state.maxPrice < 120000) html += chip(`Under $${(state.maxPrice/1000).toFixed(0)}k`, ()=>{ state.maxPrice=120000; document.getElementById('priceRange').value=120000; updatePriceLabel(); render(); });
+        if (state.availability !== 'all') html += chip(state.availability, ()=>{ state.availability='all'; document.querySelectorAll('.avail-pill').forEach(p=>{p.classList.toggle('active',p.dataset.avail==='all');}); render(); });
+        state.deals.forEach(d => html += chip(d==='apr'?'Low APR':d==='heroes'?'Heroes Discount':'FSD Included', ()=>{ state.deals=state.deals.filter(x=>x!==d); document.querySelector(`input[name="deal"][value="${d}"]`).checked=false; render(); }));
+        if (state.color) html += chip(`Color: ${state.color}`, ()=>{ state.color=null; document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('active')); render(); });
+
+        chips.innerHTML = html;
+        if (html) chips.innerHTML += `<button class="clear-all-btn" onclick="clearAll()">Clear All</button>`;
+    }
+    function chip(label, onRemove) {
+        const id = 'chip-' + Math.random().toString(36).slice(2);
+        setTimeout(()=>{ const el=document.getElementById(id); if(el) el.addEventListener('click', onRemove); }, 0);
+        return `<span class="chip" id="${id}">${label}<span class="chip-x">×</span></span>`;
+    }
+    function updateFilterBadge() {
+        let count = state.models.length + state.deals.length + (state.maxPrice<120000?1:0) + (state.availability!=='all'?1:0) + (state.color?1:0);
+        const badge = document.getElementById('filterBadge');
+        badge.style.display = count ? 'inline' : 'none';
+        badge.textContent = count;
+    }
+    function clearAll() {
+        state.models = []; state.deals = []; state.maxPrice = 120000;
+        state.availability = 'all'; state.color = null; state.search = '';
+        document.getElementById('searchInput').value = '';
+        document.getElementById('priceRange').value = 120000;
+        updatePriceLabel();
+        document.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = false);
+        document.querySelectorAll('.avail-pill').forEach(p => p.classList.toggle('active', p.dataset.avail==='all'));
+        document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+        render();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // EVENT LISTENERS
+    // ═══════════════════════════════════════════════════════════════
+
+    // Search
+    document.getElementById('searchInput').addEventListener('input', e => {
+        state.search = e.target.value.trim();
+        render();
+    });
+
+    // Sort
+    document.getElementById('sortSelect').addEventListener('change', e => {
+        state.sort = e.target.value;
+        render();
+    });
+
+    // Category tabs
+    document.querySelectorAll('.cat-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            state.category = tab.dataset.category;
+            render();
+        });
+    });
+
+    // Model checkboxes
+    document.querySelectorAll('input[name="model"]').forEach(cb => {
+        cb.addEventListener('change', () => {
+            state.models = [...document.querySelectorAll('input[name="model"]:checked')].map(c => c.value);
+            render();
+        });
+    });
+
+    // Price range
+    function updatePriceLabel() {
+        const val = parseInt(document.getElementById('priceRange').value);
+        const label = val >= 120000 ? 'Any Price' : `Up to $${(val/1000).toFixed(0)}k`;
+        document.getElementById('priceLabel').textContent = label;
+        // Update slider gradient
+        const pct = ((val-0)/(120000-0))*100;
+        document.getElementById('priceRange').style.background = `linear-gradient(to right, var(--blue) 0%, var(--blue) ${pct}%, var(--border) ${pct}%)`;
+    }
+    document.getElementById('priceRange').addEventListener('input', e => {
+        state.maxPrice = parseInt(e.target.value);
+        updatePriceLabel();
+        render();
+    });
+
+    // Availability pills
+    document.querySelectorAll('.avail-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+            document.querySelectorAll('.avail-pill').forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            state.availability = pill.dataset.avail;
+            render();
+        });
+    });
+
+    // Deal checkboxes
+    document.querySelectorAll('input[name="deal"]').forEach(cb => {
+        cb.addEventListener('change', () => {
+            state.deals = [...document.querySelectorAll('input[name="deal"]:checked')].map(c => c.value);
+            render();
+        });
+    });
+
+    // Color swatches
+    document.querySelectorAll('.color-swatch').forEach(swatch => {
+        swatch.addEventListener('click', () => {
+            const was = swatch.classList.contains('active');
+            document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+            if (!was) { swatch.classList.add('active'); state.color = swatch.dataset.color; }
+            else { state.color = null; }
+            render();
+        });
+    });
+
+    // Filter reset buttons
+    document.querySelectorAll('.filter-reset').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const group = btn.dataset.group;
+            if (group === 'model') {
+                state.models = [];
+                document.querySelectorAll('input[name="model"]').forEach(c => c.checked = false);
+            } else if (group === 'color') {
+                state.color = null;
+                document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+            } else if (group === 'price') {
+                state.maxPrice = 120000;
+                document.getElementById('priceRange').value = 120000;
+                updatePriceLabel();
+            }
+            render();
+        });
+    });
+
+    // View toggle
+    document.getElementById('gridViewBtn').addEventListener('click', () => {
+        state.view = 'grid';
+        document.getElementById('cardsGrid').classList.remove('list-view');
+        document.getElementById('gridViewBtn').classList.add('active');
+        document.getElementById('listViewBtn').classList.remove('active');
+    });
+    document.getElementById('listViewBtn').addEventListener('click', () => {
+        state.view = 'list';
+        document.getElementById('cardsGrid').classList.add('list-view');
+        document.getElementById('listViewBtn').classList.add('active');
+        document.getElementById('gridViewBtn').classList.remove('active');
+    });
+
+    // Wishlist
+    function toggleWish(btn) {
+        btn.classList.toggle('liked');
+        btn.innerHTML = btn.classList.contains('liked')
+            ? '<svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" stroke-width="2"/></svg>'
+            : '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+    }
+
+    // Mobile sidebar
+    document.getElementById('filterToggle').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.add('open');
+        document.getElementById('sidebarOverlay').classList.add('visible');
+    });
+    function closeSidebar() {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.remove('visible');
+    }
+    document.getElementById('closeSidebar').addEventListener('click', closeSidebar);
+    document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
+
+    // ═══ INIT ═══
+    updatePriceLabel();
+    render();
+
+    // ═══════════════════════════════════════════════════════════════
+    // PRODUCT DETAIL DATA (gallery, colors, specs, features, configs)
+    // ═══════════════════════════════════════════════════════════════
+    const detailData = {
+        // ── VEHICLES ──────────────────────────────────────────────
+        1: {
+            gallery: ['images/secondcarousel2.avif','images/Homepage-Promo-Model-3-Desktop-US-CA-MX.avif','images/feature1.avif','images/feature2.avif'],
+            colors: [
+                { name:'Pearl White', hex:'#f0f0f0', border:true },
+                { name:'Midnight Black', hex:'#111111' },
+                { name:'Deep Blue Metallic', hex:'#2c4a7c' },
+                { name:'Ultra Red', hex:'#a4191b' },
+                { name:'Quicksilver', hex:'#9ca3af' },
+            ],
+            specs: [
+                { group: 'Performance', rows: [
+                    { k:'Range (EPA Est.)', v:'390 mi', highlight:true },
+                    { k:'0–60 mph', v:'4.2 sec', highlight:true },
+                    { k:'Top Speed', v:'145 mph' },
+                    { k:'Peak Power', v:'346 hp' },
+                    { k:'Drivetrain', v:'Dual Motor AWD' },
+                ]},
+                { group: 'Dimensions', rows: [
+                    { k:'Length', v:'184.8 in' },
+                    { k:'Width', v:'72.8 in' },
+                    { k:'Height', v:'56.8 in' },
+                    { k:'Wheelbase', v:'113.2 in' },
+                    { k:'Cargo', v:'22.3 cu ft' },
+                    { k:'Curb Weight', v:'4,034 lbs' },
+                ]},
+                { group: 'Charging', rows: [
+                    { k:'Supercharger (V3)', v:'170 mi in 15 min' },
+                    { k:'Onboard Charger', v:'11.5 kW AC' },
+                    { k:'Home Charging', v:'44 mi/hr (Wall Connector)' },
+                ]},
+            ],
+            features: [
+                { emoji:'📱', title:'15" Cinematic Display', desc:'Portrait-oriented touchscreen with 2200×1300 resolution. Controls everything from climate to entertainment.' },
+                { emoji:'🤖', title:'Autopilot Included', desc:'Standard Autopilot enables lane centering, adaptive cruise control, and automatic emergency braking on every drive.' },
+                { emoji:'🎵', title:'Premium 17-Speaker Audio', desc:'960-watt sound system with active noise canceling fills the cabin with concert-quality audio.' },
+                { emoji:'🌡️', title:'Heat Pump', desc:'Highly efficient heat pump extends range in cold weather while keeping the cabin comfortable year-round.' },
+                { emoji:'🔋', title:'Long Range Battery Pack', desc:'The largest battery option for Model 3 — engineered for maximum energy density and longevity.' },
+                { emoji:'🛡️', title:'5-Star Safety Rating', desc:'NHTSA 5-star overall rating. One of the lowest rollover risks ever recorded for a sedan.' },
+            ],
+            configs: [
+                { name:'Model 3 RWD', detail:'358 mi · 283 hp · 5.8s 0–60', price:'$38,990' },
+                { name:'Model 3 Long Range AWD', detail:'390 mi · 346 hp · 4.2s 0–60', price:'$45,990', active:true },
+                { name:'Model 3 Performance', detail:'315 mi · 455 hp · 3.1s 0–60', price:'$50,990' },
+            ],
+        },
+        2: {
+            gallery: ['images/Homepage-Promo-Model-3-Desktop-US-CA-MX.avif','images/secondcarousel2.avif','images/feature2.avif','images/card1.avif'],
+            colors: [
+                { name:'Pearl White', hex:'#f0f0f0', border:true },
+                { name:'Midnight Black', hex:'#111111' },
+                { name:'Deep Blue Metallic', hex:'#2c4a7c' },
+                { name:'Ultra Red', hex:'#a4191b' },
+            ],
+            specs: [
+                { group: 'Performance', rows: [
+                    { k:'Range (EPA Est.)', v:'358 mi', highlight:true },
+                    { k:'0–60 mph', v:'5.8 sec', highlight:true },
+                    { k:'Top Speed', v:'140 mph' },
+                    { k:'Peak Power', v:'283 hp' },
+                    { k:'Drivetrain', v:'Rear-Wheel Drive' },
+                ]},
+                { group: 'Dimensions', rows: [
+                    { k:'Length', v:'184.8 in' },
+                    { k:'Width', v:'72.8 in' },
+                    { k:'Height', v:'56.8 in' },
+                    { k:'Curb Weight', v:'3,862 lbs' },
+                    { k:'Cargo', v:'22.3 cu ft' },
+                ]},
+                { group: 'Charging', rows: [
+                    { k:'Supercharger (V3)', v:'170 mi in 15 min' },
+                    { k:'Onboard Charger', v:'7.2 kW AC' },
+                    { k:'Home Charging', v:'30 mi/hr (Wall Connector)' },
+                ]},
+            ],
+            features: [
+                { emoji:'💰', title:'Most Affordable Tesla', desc:'The best entry point into Tesla ownership without sacrificing performance, safety, or technology.' },
+                { emoji:'🏛️', title:'Tax Credit Eligible', desc:'Eligible for up to $7,500 federal EV tax credit, bringing the effective price significantly lower.' },
+                { emoji:'🤖', title:'Autopilot Included', desc:'Adaptive cruise control and lane centering come standard with every Model 3 RWD.' },
+                { emoji:'📱', title:'15" Touchscreen', desc:'Full landscape-to-portrait cinematic touchscreen controls everything from your fingertips.' },
+                { emoji:'🔒', title:'Sentry Mode', desc:'24/7 surveillance mode uses 360° cameras to detect and record threats while parked.' },
+                { emoji:'🛡️', title:'5-Star Safety', desc:'NHTSA 5-star overall safety rating across all testing categories.' },
+            ],
+            configs: [
+                { name:'Model 3 RWD', detail:'358 mi · 283 hp · 5.8s 0–60', price:'$38,990', active:true },
+                { name:'Model 3 Long Range AWD', detail:'390 mi · 346 hp · 4.2s 0–60', price:'$45,990' },
+                { name:'Model 3 Performance', detail:'315 mi · 455 hp · 3.1s 0–60', price:'$50,990' },
+            ],
+        },
+        3: {
+            gallery: ['images/secondcarousel2.avif','images/feature1.avif','images/card1.avif','images/feature2.avif'],
+            colors: [
+                { name:'Midnight Black', hex:'#111111' },
+                { name:'Pearl White', hex:'#f0f0f0', border:true },
+                { name:'Ultra Red', hex:'#a4191b' },
+                { name:'Quicksilver', hex:'#9ca3af' },
+            ],
+            specs: [
+                { group: 'Performance', rows: [
+                    { k:'Range (EPA Est.)', v:'315 mi', highlight:true },
+                    { k:'0–60 mph', v:'3.1 sec', highlight:true },
+                    { k:'Top Speed', v:'162 mph' },
+                    { k:'Peak Power', v:'455 hp' },
+                    { k:'Drivetrain', v:'Dual Motor AWD (Performance)' },
+                ]},
+                { group: 'Performance Upgrades', rows: [
+                    { k:'Suspension', v:'Lowered sport suspension' },
+                    { k:'Brake Upgrade', v:'Performance brakes' },
+                    { k:'Spoiler', v:'Carbon fiber rear spoiler' },
+                    { k:'Track Mode', v:'Included' },
+                    { k:'Curb Weight', v:'4,065 lbs' },
+                ]},
+                { group: 'Charging', rows: [
+                    { k:'Supercharger (V3)', v:'170 mi in 15 min' },
+                    { k:'Onboard Charger', v:'11.5 kW AC' },
+                ]},
+            ],
+            features: [
+                { emoji:'🏎️', title:'Track Mode', desc:'Customizable traction control, regenerative braking, and stability for maximum performance on a closed track.' },
+                { emoji:'🚀', title:'3.1s 0–60', desc:'Performance dual motors deliver explosive acceleration rivaling sports cars costing twice as much.' },
+                { emoji:'🏁', title:'Carbon Fiber Spoiler', desc:'Factory-fitted carbon fiber rear spoiler adds downforce and a distinctive performance aesthetic.' },
+                { emoji:'🔧', title:'Lowered Suspension', desc:'Sport-tuned, lowered suspension delivers sharper handling and reduced body roll in corners.' },
+                { emoji:'🛑', title:'Performance Brakes', desc:'Larger calipers and rotors provide superior stopping power at high speed and during repeated hard braking.' },
+                { emoji:'📱', title:'Track Telemetry App', desc:'Built-in telemetry app records lap times, g-forces, and power usage during track sessions.' },
+            ],
+            configs: [
+                { name:'Model 3 RWD', detail:'358 mi · 283 hp · 5.8s 0–60', price:'$38,990' },
+                { name:'Model 3 Long Range AWD', detail:'390 mi · 346 hp · 4.2s 0–60', price:'$45,990' },
+                { name:'Model 3 Performance', detail:'315 mi · 455 hp · 3.1s 0–60', price:'$50,990', active:true },
+            ],
+        },
+        4: {
+            gallery: ['images/secondcarousel3.avif','images/Homepage-Promo-Meet-Model-Y-Desktop.avif','images/feature2.avif','images/card1.avif'],
+            colors: [
+                { name:'Pearl White', hex:'#f0f0f0', border:true },
+                { name:'Midnight Black', hex:'#111111' },
+                { name:'Deep Blue Metallic', hex:'#2c4a7c' },
+                { name:'Ultra Red', hex:'#a4191b' },
+                { name:'Quicksilver', hex:'#9ca3af' },
+                { name:'Midnight Cherry', hex:'#6b1a1a' },
+            ],
+            specs: [
+                { group: 'Performance', rows: [
+                    { k:'Range (EPA Est.)', v:'310 mi', highlight:true },
+                    { k:'0–60 mph', v:'4.8 sec', highlight:true },
+                    { k:'Top Speed', v:'135 mph' },
+                    { k:'Peak Power', v:'384 hp' },
+                    { k:'Drivetrain', v:'Dual Motor AWD' },
+                ]},
+                { group: 'Dimensions & Cargo', rows: [
+                    { k:'Seating', v:'5 (7 optional)' },
+                    { k:'Cargo (seats up)', v:'30.2 cu ft' },
+                    { k:'Cargo (seats folded)', v:'76 cu ft' },
+                    { k:'Towing Capacity', v:'3,500 lbs' },
+                    { k:'Curb Weight', v:'4,555 lbs' },
+                ]},
+                { group: 'Charging', rows: [
+                    { k:'Supercharger (V3)', v:'162 mi in 15 min' },
+                    { k:'Onboard Charger', v:'11.5 kW AC' },
+                    { k:'Home Charging', v:'44 mi/hr' },
+                ]},
+            ],
+            features: [
+                { emoji:'👨‍👩‍👧‍👦', title:'7-Seat Option', desc:'Optional third row transforms Model Y into a 7-passenger family vehicle, ideal for road trips and school runs.' },
+                { emoji:'📦', title:'76 cu ft Cargo', desc:'With rear seats folded, Model Y offers more cargo space than most traditional mid-size SUVs.' },
+                { emoji:'🏔️', title:'All-Weather AWD', desc:'Dual motor AWD provides exceptional traction in rain, snow, mud, and all road conditions.' },
+                { emoji:'🚌', title:'3,500 lb Tow Capacity', desc:'Tow a boat, camper, or trailer with confidence. Model Y is built for real-world utility.' },
+                { emoji:'🤖', title:'Autopilot Included', desc:'Navigate traffic, change lanes, and manage speed automatically on highways with Autopilot standard.' },
+                { emoji:'🛡️', title:'5-Star Safety Rating', desc:'One of the lowest rollover risks of any SUV ever tested by NHTSA.' },
+            ],
+            configs: [
+                { name:'Model Y RWD', detail:'330 mi · 299 hp · 5.9s 0–60', price:'$43,990' },
+                { name:'Model Y Long Range AWD', detail:'310 mi · 384 hp · 4.8s 0–60', price:'$49,990', active:true },
+                { name:'Model Y Performance', detail:'285 mi · 456 hp · 3.5s 0–60', price:'$55,990' },
+            ],
+        },
+        5: {
+            gallery: ['images/Homepage-Promo-Meet-Model-Y-Desktop.avif','images/secondcarousel3.avif','images/feature1.avif','images/card1.avif'],
+            colors: [
+                { name:'Pearl White', hex:'#f0f0f0', border:true },
+                { name:'Midnight Black', hex:'#111111' },
+                { name:'Deep Blue Metallic', hex:'#2c4a7c' },
+                { name:'Quicksilver', hex:'#9ca3af' },
+            ],
+            specs: [
+                { group: 'Performance', rows: [
+                    { k:'Range (EPA Est.)', v:'330 mi', highlight:true },
+                    { k:'0–60 mph', v:'5.9 sec', highlight:true },
+                    { k:'Top Speed', v:'130 mph' },
+                    { k:'Peak Power', v:'299 hp' },
+                    { k:'Drivetrain', v:'Rear-Wheel Drive' },
+                ]},
+                { group: 'Dimensions & Cargo', rows: [
+                    { k:'Seating', v:'5' },
+                    { k:'Cargo (seats up)', v:'30.2 cu ft' },
+                    { k:'Cargo (folded)', v:'76 cu ft' },
+                    { k:'Curb Weight', v:'4,398 lbs' },
+                ]},
+                { group: 'Financial', rows: [
+                    { k:'Federal Tax Credit', v:'Up to $7,500', highlight:true },
+                    { k:'APR (financing)', v:'0% available' },
+                    { k:'Est. Monthly (60mo)', v:'~$690/mo' },
+                ]},
+            ],
+            features: [
+                { emoji:'💵', title:'Tax Credit Eligible', desc:'Eligible for the full $7,500 federal EV tax credit, effectively bringing the price well under $40k.' },
+                { emoji:'⚡', title:'0% APR Financing', desc:'Drive home a Model Y with zero financing costs. 0% APR available on approved credit.' },
+                { emoji:'📦', title:'Massive Cargo Space', desc:'76 cubic feet with the rear seats folded — haul bikes, furniture, sporting gear and more.' },
+                { emoji:'🤖', title:'Autopilot Standard', desc:'Every Model Y comes with Autopilot: adaptive cruise control and auto lane centering.' },
+                { emoji:'🔌', title:'Free Supercharging Trial', desc:'New Model Y owners receive a complimentary Supercharger trial on selected inventory vehicles.' },
+                { emoji:'🛡️', title:'5-Star Safety', desc:'NHTSA 5-star overall. Outstanding protection for every passenger.' },
+            ],
+            configs: [
+                { name:'Model Y RWD', detail:'330 mi · 299 hp · 5.9s 0–60', price:'$43,990', active:true },
+                { name:'Model Y Long Range AWD', detail:'310 mi · 384 hp · 4.8s 0–60', price:'$49,990' },
+                { name:'Model Y Performance', detail:'285 mi · 456 hp · 3.5s 0–60', price:'$55,990' },
+            ],
+        },
+        6: {
+            gallery: ['images/secondcarousel3.avif','images/feature1.avif','images/card1.avif','images/feature2.avif'],
+            colors: [
+                { name:'Ultra Red', hex:'#a4191b' },
+                { name:'Midnight Black', hex:'#111111' },
+                { name:'Pearl White', hex:'#f0f0f0', border:true },
+                { name:'Quicksilver', hex:'#9ca3af' },
+            ],
+            specs: [
+                { group: 'Performance', rows: [
+                    { k:'Range (EPA Est.)', v:'285 mi', highlight:true },
+                    { k:'0–60 mph', v:'3.5 sec', highlight:true },
+                    { k:'Top Speed', v:'155 mph' },
+                    { k:'Peak Power', v:'456 hp' },
+                    { k:'Drivetrain', v:'Dual Motor AWD (Performance)' },
+                ]},
+                { group: 'Performance Upgrades', rows: [
+                    { k:'Suspension', v:'Lowered sport (10mm)' },
+                    { k:'Spoiler', v:'Carbon fiber' },
+                    { k:'Wheels', v:'21" Überturbine' },
+                    { k:'Track Mode', v:'Included' },
+                ]},
+                { group: 'Charging', rows: [
+                    { k:'Supercharger (V3)', v:'162 mi in 15 min' },
+                    { k:'Onboard Charger', v:'11.5 kW AC' },
+                ]},
+            ],
+            features: [
+                { emoji:'🏎️', title:'SUV That Corners Like a Sports Car', desc:'Lowered sport suspension, stiffened chassis mounts, and performance tires deliver exceptional handling for an SUV.' },
+                { emoji:'🚀', title:'3.5s 0–60 mph', desc:'Performance AWD launches the Model Y Performance with the pace of a dedicated sports car.' },
+                { emoji:'🎯', title:'21" Überturbine Wheels', desc:'Exclusive 21-inch wheels fitted with performance tires give the best possible grip and stance.' },
+                { emoji:'🏁', title:'Track Mode V2', desc:'Customizable performance modes let you tune how power, traction, and regenerative braking behave.' },
+                { emoji:'🌊', title:'Carbon Fiber Spoiler', desc:'Factory-fitted carbon fiber spoiler improves high-speed stability and adds striking visual identity.' },
+                { emoji:'🛡️', title:'5-Star Safety', desc:'Performance hardware without compromise on safety. Full 5-star NHTSA rating retained.' },
+            ],
+            configs: [
+                { name:'Model Y RWD', detail:'330 mi · 299 hp · 5.9s 0–60', price:'$43,990' },
+                { name:'Model Y Long Range AWD', detail:'310 mi · 384 hp · 4.8s 0–60', price:'$49,990' },
+                { name:'Model Y Performance', detail:'285 mi · 456 hp · 3.5s 0–60', price:'$55,990', active:true },
+            ],
+        },
+        7: {
+            gallery: ['images/secondcarousel4.avif','images/feature2.avif','images/card1.avif','images/feature1.avif'],
+            colors: [
+                { name:'Pearl White', hex:'#f0f0f0', border:true },
+                { name:'Midnight Black', hex:'#111111' },
+                { name:'Deep Blue Metallic', hex:'#2c4a7c' },
+                { name:'Ultra Red', hex:'#a4191b' },
+                { name:'Quicksilver', hex:'#9ca3af' },
+            ],
+            specs: [
+                { group: 'Performance', rows: [
+                    { k:'Range (EPA Est.)', v:'335 mi', highlight:true },
+                    { k:'0–60 mph', v:'3.8 sec', highlight:true },
+                    { k:'Top Speed', v:'155 mph' },
+                    { k:'Peak Power', v:'670 hp' },
+                    { k:'Drivetrain', v:'Dual Motor AWD' },
+                ]},
+                { group: 'Dimensions', rows: [
+                    { k:'Seating', v:'7' },
+                    { k:'Towing Capacity', v:'5,000 lbs' },
+                    { k:'Cargo (3rd row folded)', v:'88 cu ft' },
+                    { k:'Length', v:'198.3 in' },
+                    { k:'Curb Weight', v:'5,390 lbs' },
+                ]},
+                { group: 'Charging', rows: [
+                    { k:'Supercharger (V3)', v:'175 mi in 15 min' },
+                    { k:'Onboard Charger', v:'11.5 kW AC' },
+                ]},
+            ],
+            features: [
+                { emoji:'🦅', title:'Falcon Wing Doors', desc:'Self-presenting Falcon Wing doors open upward to give effortless access even in tight parking spaces.' },
+                { emoji:'🎭', title:'Panoramic Windshield', desc:'A massive panoramic front windshield extends overhead, providing an unparalleled view of the sky.' },
+                { emoji:'👨‍👩‍👧‍👦', title:'7-Passenger Seating', desc:'Three rows of seating for up to 7 adults, all with excellent headroom and legroom.' },
+                { emoji:'🎵', title:'22-Speaker Premium Audio', desc:'An immersive 22-speaker sound system delivers studio-quality audio in every seat.' },
+                { emoji:'🚐', title:'5,000 lb Tow Rating', desc:'Capable of towing a boat, trailer, or camper. The most capable Tesla for heavy-duty hauling.' },
+                { emoji:'📺', title:'17" Cinematic Display', desc:'Landscape 17-inch touchscreen with gaming and streaming capabilities for every passenger.' },
+            ],
+            configs: [
+                { name:'Model X Long Range', detail:'335 mi · 670 hp · 3.8s 0–60', price:'$79,990', active:true },
+                { name:'Model X Plaid', detail:'326 mi · 1,020 hp · 2.5s 0–60', price:'$99,990' },
+            ],
+        },
+        8: {
+            gallery: ['images/secondcarousel4.avif','images/feature1.avif','images/feature2.avif','images/card1.avif'],
+            colors: [
+                { name:'Quicksilver', hex:'#9ca3af' },
+                { name:'Pearl White', hex:'#f0f0f0', border:true },
+                { name:'Midnight Black', hex:'#111111' },
+                { name:'Ultra Red', hex:'#a4191b' },
+            ],
+            specs: [
+                { group: 'Performance', rows: [
+                    { k:'Range (EPA Est.)', v:'326 mi', highlight:true },
+                    { k:'0–60 mph', v:'2.5 sec', highlight:true },
+                    { k:'Top Speed', v:'163 mph' },
+                    { k:'Peak Power', v:'1,020 hp' },
+                    { k:'Drivetrain', v:'Tri-Motor AWD (Plaid)' },
+                ]},
+                { group: 'Dimensions', rows: [
+                    { k:'Seating', v:'7' },
+                    { k:'Towing Capacity', v:'5,000 lbs' },
+                    { k:'Cargo (seats folded)', v:'88 cu ft' },
+                    { k:'Curb Weight', v:'5,559 lbs' },
+                ]},
+                { group: 'Charging', rows: [
+                    { k:'Supercharger (V3)', v:'175 mi in 15 min' },
+                    { k:'Onboard Charger', v:'11.5 kW AC' },
+                ]},
+            ],
+            features: [
+                { emoji:'⚡', title:'1,020 hp Tri-Motor', desc:'Three independent motors — one front, two rear — deliver unmatched power and all-weather traction.' },
+                { emoji:'🚀', title:'Quickest SUV Ever Made', desc:'0–60 in 2.5 seconds. Faster than nearly any production vehicle, regardless of class or price.' },
+                { emoji:'🦅', title:'Falcon Wing Doors', desc:'Iconic upward-opening doors make a grand entrance and provide easy access from any parking space.' },
+                { emoji:'🎮', title:'10 TFLOPS Processing Power', desc:'Infotainment system runs demanding games and media without compromise. A supercomputer on wheels.' },
+                { emoji:'🎵', title:'22-Speaker Audio', desc:'Concert hall acoustics in every seat. Active noise canceling creates a whisper-quiet cabin even at speed.' },
+                { emoji:'🏆', title:'5-Star Safety', desc:'Despite 1,020 hp of power, Model X Plaid maintains the highest safety ratings in its class.' },
+            ],
+            configs: [
+                { name:'Model X Long Range', detail:'335 mi · 670 hp · 3.8s 0–60', price:'$79,990' },
+                { name:'Model X Plaid', detail:'326 mi · 1,020 hp · 2.5s 0–60', price:'$99,990', active:true },
+            ],
+        },
+        9: {
+            gallery: ['images/secondcarousel5.avif','images/feature1.avif','images/feature2.avif','images/card1.avif'],
+            colors: [
+                { name:'Pearl White', hex:'#f0f0f0', border:true },
+                { name:'Midnight Black', hex:'#111111' },
+                { name:'Midnight Silver', hex:'#7c8490' },
+                { name:'Ultra Red', hex:'#a4191b' },
+                { name:'Quicksilver', hex:'#c8cdd4' },
+            ],
+            specs: [
+                { group: 'Performance', rows: [
+                    { k:'Range (EPA Est.)', v:'405 mi', highlight:true },
+                    { k:'0–60 mph', v:'3.1 sec', highlight:true },
+                    { k:'Top Speed', v:'149 mph' },
+                    { k:'Peak Power', v:'670 hp' },
+                    { k:'Drivetrain', v:'Dual Motor AWD' },
+                ]},
+                { group: 'Dimensions', rows: [
+                    { k:'Seating', v:'5' },
+                    { k:'Length', v:'196.0 in' },
+                    { k:'Width (mirrors)', v:'77.3 in' },
+                    { k:'Cargo', v:'28 cu ft' },
+                    { k:'Curb Weight', v:'4,561 lbs' },
+                ]},
+                { group: 'Charging', rows: [
+                    { k:'Supercharger (V3)', v:'200 mi in 15 min' },
+                    { k:'Onboard Charger', v:'11.5 kW AC' },
+                    { k:'Miles per hour (home)', v:'44 mi/hr' },
+                ]},
+            ],
+            features: [
+                { emoji:'📍', title:'405-Mile Range', desc:'Model S Long Range achieves more EPA-estimated range than any other electric vehicle available today.' },
+                { emoji:'🖥️', title:'17" Cinematic Touchscreen', desc:'A landscape 17-inch touchscreen with responsive touch and haptic feedback controls every vehicle function.' },
+                { emoji:'🕹️', title:'Yoke Steering Wheel (Optional)', desc:'The distinctive Yoke steering wheel offers a futuristic, open-view driving experience unlike anything else.' },
+                { emoji:'🎮', title:'Gaming & Entertainment', desc:'Up to 10 TFLOPS of processing power enables demanding games and streaming in every seat.' },
+                { emoji:'🎵', title:'22-Speaker Sound System', desc:'Audiophile-grade, spatially aware sound system with active noise canceling and Dolby Atmos-ready output.' },
+                { emoji:'🛡️', title:'5-Star Safety', desc:'Maximum safety ratings without compromise. Crumple zones, rigid frame, and active safety systems.' },
+            ],
+            configs: [
+                { name:'Model S Long Range', detail:'405 mi · 670 hp · 3.1s 0–60', price:'$74,990', active:true },
+                { name:'Model S Plaid', detail:'396 mi · 1,020 hp · 1.99s 0–60', price:'$89,990' },
+            ],
+        },
+        10: {
+            gallery: ['images/secondcarousel5.avif','images/feature2.avif','images/feature1.avif','images/card1.avif'],
+            colors: [
+                { name:'Midnight Black', hex:'#111111' },
+                { name:'Pearl White', hex:'#f0f0f0', border:true },
+                { name:'Ultra Red', hex:'#a4191b' },
+                { name:'Quicksilver', hex:'#c8cdd4' },
+            ],
+            specs: [
+                { group: 'Performance', rows: [
+                    { k:'Range (EPA Est.)', v:'396 mi', highlight:true },
+                    { k:'0–60 mph', v:'1.99 sec', highlight:true },
+                    { k:'Top Speed', v:'200 mph' },
+                    { k:'Peak Power', v:'1,020 hp' },
+                    { k:'Drivetrain', v:'Tri-Motor AWD (Plaid)' },
+                ]},
+                { group: 'Plaid Exclusives', rows: [
+                    { k:'Carbon Fiber Spoiler', v:'Standard' },
+                    { k:'Track Mode', v:'Included' },
+                    { k:'Chassis', v:'Carbon Ceramic Brakes (opt.)' },
+                    { k:'Interior', v:'White/Black Plaid cloth' },
+                ]},
+                { group: 'Charging', rows: [
+                    { k:'Supercharger (V3)', v:'200 mi in 15 min' },
+                    { k:'Onboard Charger', v:'11.5 kW AC' },
+                ]},
+            ],
+            features: [
+                { emoji:'🚀', title:'Fastest Production Car in the World', desc:'0–60 in 1.99 seconds with rollout subtracted. Nothing on public roads accelerates faster.' },
+                { emoji:'🏁', title:'200 mph Top Speed', desc:'The only production electric vehicle rated for a 200 mph top speed.' },
+                { emoji:'⚡', title:'Tri-Motor Architecture', desc:"Three independent carbon-sleeved rotary motors — one front, two rear — Tesla's most advanced drivetrain." },
+                { emoji:'🎮', title:'10 TFLOPS Computing', desc:'More processing power than a PlayStation 5. Run demanding games across the multiple displays.' },
+                { emoji:'🎵', title:'22-Speaker Studio Sound', desc:'The most immersive audio system Tesla has ever engineered, with spatial audio and noise canceling.' },
+                { emoji:'🏎️', title:'Track Mode', desc:'Full customization of stability, traction, and regenerative braking for closed circuit performance driving.' },
+            ],
+            configs: [
+                { name:'Model S Long Range', detail:'405 mi · 670 hp · 3.1s 0–60', price:'$74,990' },
+                { name:'Model S Plaid', detail:'396 mi · 1,020 hp · 1.99s 0–60', price:'$89,990', active:true },
+            ],
+        },
+        11: {
+            gallery: ['images/secondcarousel1.avif','images/feature1.avif','images/feature2.avif','images/card1.avif'],
+            colors: [
+                { name:'Stainless Steel', hex:'linear-gradient(135deg,#c0c0c0,#e8e8e8)', gradient:true },
+                { name:'Matte Black Wrap', hex:'#1c1c1c' },
+                { name:'Satin White Wrap', hex:'#f5f5f5', border:true },
+            ],
+            specs: [
+                { group: 'Performance', rows: [
+                    { k:'Range (EPA Est.)', v:'340 mi', highlight:true },
+                    { k:'0–60 mph', v:'4.1 sec', highlight:true },
+                    { k:'Top Speed', v:'130 mph' },
+                    { k:'Drivetrain', v:'Dual Motor AWD' },
+                    { k:'Horsepower', v:'~600 hp (est.)' },
+                ]},
+                { group: 'Utility', rows: [
+                    { k:'Tow Capacity', v:'11,000 lbs', highlight:true },
+                    { k:'Payload Capacity', v:'2,500 lbs' },
+                    { k:'Vault Length', v:'6 ft' },
+                    { k:'Ground Clearance', v:'17.7 in (air susp. raised)' },
+                    { k:'Water Fording Depth', v:'3 ft (Wade Mode)' },
+                ]},
+                { group: 'Power Outputs', rows: [
+                    { k:'Onboard Inverter', v:'11.5 kW (120V + 240V)' },
+                    { k:'Bed Outlets', v:'4× 120V, 1× 240V' },
+                    { k:'Vehicle-to-Home', v:'Optional' },
+                ]},
+            ],
+            features: [
+                { emoji:'🔩', title:'30X Stainless Steel Exoskeleton', desc:'Cold-rolled ultra-hard stainless steel body resists dents, corrosion, and everyday damage without paint.' },
+                { emoji:'🔌', title:'11.5 kW Onboard Inverter', desc:'Power tools, appliances, and devices directly from your truck — 4× 120V and 1× 240V outlets in the vault.' },
+                { emoji:'🌊', title:'Wade Mode', desc:'Raises suspension to max height and seals the drivetrain for river crossings up to 3 feet deep.' },
+                { emoji:'📦', title:'6-ft Powered Vault', desc:'Covered, lockable bed with motorized tonneau cover and integrated lighting. Built for serious work.' },
+                { emoji:'🏕️', title:'Air Suspension', desc:'Adaptive air suspension adjusts automatically for payload, towing, off-road terrain, and highway efficiency.' },
+                { emoji:'⚡', title:'Vehicle-to-Home Ready', desc:'Optional V2H capability lets your Cybertruck power your home during outages using its massive battery.' },
+            ],
+            configs: [
+                { name:'Cybertruck RWD', detail:'250 mi · Single Motor · 6.5s 0–60', price:'$59,990' },
+                { name:'Cybertruck AWD', detail:'340 mi · Dual Motor · 4.1s 0–60', price:'$79,990', active:true },
+                { name:'Cyberbeast', detail:'320 mi · Tri-Motor · 2.6s 0–60', price:'$99,990' },
+            ],
+        },
+        12: {
+            gallery: ['images/secondcarousel1.avif','images/feature2.avif','images/card1.avif','images/feature1.avif'],
+            colors: [
+                { name:'Stainless Steel', hex:'linear-gradient(135deg,#c0c0c0,#e8e8e8)', gradient:true },
+                { name:'Matte Black Wrap', hex:'#1c1c1c' },
+            ],
+            specs: [
+                { group: 'Performance', rows: [
+                    { k:'Range (EPA Est.)', v:'320 mi', highlight:true },
+                    { k:'0–60 mph', v:'2.6 sec', highlight:true },
+                    { k:'Top Speed', v:'130 mph' },
+                    { k:'Peak Power', v:'845 hp' },
+                    { k:'Drivetrain', v:'Tri-Motor AWD (Cyberbeast)' },
+                ]},
+                { group: 'Utility', rows: [
+                    { k:'Tow Capacity', v:'11,000 lbs', highlight:true },
+                    { k:'Payload Capacity', v:'2,500 lbs' },
+                    { k:'Ground Clearance', v:'17.7 in (raised)' },
+                    { k:'Water Fording', v:'3 ft' },
+                ]},
+                { group: 'Power Outputs', rows: [
+                    { k:'Onboard Inverter', v:'11.5 kW' },
+                    { k:'Bed Outlets', v:'4× 120V, 1× 240V' },
+                ]},
+            ],
+            features: [
+                { emoji:'💥', title:'845 hp Tri-Motor', desc:'Three motors produce 845 combined horsepower, making Cyberbeast the most powerful truck ever made.' },
+                { emoji:'🚀', title:'0–60 in 2.6 Seconds', desc:'The Cyberbeast launches faster than nearly any production car in history — in a full-size truck.' },
+                { emoji:'🔩', title:'Stainless Steel Armor', desc:'Ultra-hard 30X stainless steel body that resists denting, rust, and wear for the life of the vehicle.' },
+                { emoji:'🌊', title:'Wade Mode + Air Suspension', desc:'Maximum off-road capability with 17.7" ground clearance and water fording up to 3 feet deep.' },
+                { emoji:'🔌', title:'Onboard Power Station', desc:'11.5 kW inverter powers a full job site or campsite. Even backs up your home during power outages.' },
+                { emoji:'🏕️', title:'Powered Vault', desc:'6-foot covered bed with motorized tonneau cover, outlets, and integrated lighting for any adventure.' },
+            ],
+            configs: [
+                { name:'Cybertruck RWD', detail:'250 mi · Single Motor · 6.5s 0–60', price:'$59,990' },
+                { name:'Cybertruck AWD', detail:'340 mi · Dual Motor · 4.1s 0–60', price:'$79,990' },
+                { name:'Cyberbeast', detail:'320 mi · Tri-Motor · 2.6s 0–60', price:'$99,990', active:true },
+            ],
+        },
+
+        // ── ENERGY ────────────────────────────────────────────────
+        13: {
+            gallery: ['images/feature2.avif','images/card1.avif','images/feature1.avif','images/feature2.avif'],
+            colors: [ { name:'Matte White', hex:'#f5f5f5', border:true } ],
+            specs: [
+                { group: 'Capacity & Output', rows: [
+                    { k:'Usable Capacity', v:'13.5 kWh', highlight:true },
+                    { k:'Continuous Power', v:'11.5 kW', highlight:true },
+                    { k:'Peak Power (7s)', v:'22 kW' },
+                    { k:'On-Grid / Off-Grid', v:'Both' },
+                ]},
+                { group: 'Installation', rows: [
+                    { k:'Weight', v:'287 lbs' },
+                    { k:'Dimensions', v:'45.8 × 24.0 × 7.6 in' },
+                    { k:'Operating Temp', v:'-4°F to 122°F' },
+                    { k:'Warranty', v:'10 years unlimited cycles' },
+                ]},
+                { group: 'Solar', rows: [
+                    { k:'Solar Inverter', v:'Integrated (up to 7.6 kW)' },
+                    { k:'Solar Panel Input', v:'Up to 20 panels' },
+                    { k:'Grid Services', v:'Virtual Power Plant eligible' },
+                ]},
+            ],
+            features: [
+                { emoji:'🔋', title:'Integrated Solar Inverter', desc:'Powerwall 3 includes a built-in solar inverter, eliminating the need for a separate solar inverter and saving installation cost.' },
+                { emoji:'🏠', title:'Whole-Home Backup', desc:'Automatically detects a grid outage and switches your home to battery power in under 100 milliseconds.' },
+                { emoji:'📱', title:'Tesla App Control', desc:'Monitor energy production, consumption, and battery level in real-time from the Tesla app on your phone.' },
+                { emoji:'🌞', title:'Time-Based Control', desc:'Charge during off-peak rates and discharge during peak pricing to maximize savings on your electricity bill.' },
+                { emoji:'🔗', title:'Expandable Up to 4 Units', desc:'Stack up to 4 Powerwall 3 units for 54 kWh of whole-home storage. Perfect for larger homes or EVs.' },
+                { emoji:'🌐', title:'Virtual Power Plant', desc:'Opt in to participate in grid stability programs and earn credits by sharing stored energy when the grid needs it.' },
+            ],
+            configs: [
+                { name:'Powerwall 3 (Single)', detail:'13.5 kWh · 11.5 kW continuous · Solar ready', price:'$11,500', active:true },
+                { name:'Powerwall 3 (Twin Pack)', detail:'27 kWh · 23 kW continuous · Solar ready', price:'$20,000' },
+            ],
+        },
+        14: {
+            gallery: ['images/feature1.avif','images/feature2.avif','images/card1.avif','images/feature1.avif'],
+            colors: [ { name:'Matte White', hex:'#f5f5f5', border:true } ],
+            specs: [
+                { group: 'System Capacity', rows: [
+                    { k:'Battery Storage', v:'27 kWh', highlight:true },
+                    { k:'Continuous Output', v:'23 kW', highlight:true },
+                    { k:'Solar Input (est.)', v:'~12 kW peak' },
+                    { k:'Units Included', v:'2× Powerwall 3' },
+                ]},
+                { group: 'Installation', rows: [
+                    { k:'Installation Time', v:'1–2 days' },
+                    { k:'Warranty', v:'10 years (battery + solar)' },
+                    { k:'Monitoring', v:'Tesla app + web portal' },
+                ]},
+            ],
+            features: [
+                { emoji:'🌞', title:'Solar + Storage Bundle', desc:'Combines Tesla solar panels with dual Powerwall 3 units for maximum self-sufficiency and savings.' },
+                { emoji:'🏠', title:'Full Home Backup', desc:'27 kWh of storage keeps your whole home running through extended outages — day and night.' },
+                { emoji:'💰', title:'Maximum Bill Savings', desc:'Generate during the day, store the surplus, and use stored energy during expensive peak pricing hours.' },
+                { emoji:'📱', title:'Single App Control', desc:'Manage solar production and battery storage from one unified Tesla app dashboard.' },
+                { emoji:'🔗', title:'EV Charge Integration', desc:'Automatically routes solar energy to charge your Tesla vehicle first, then stores the remainder.' },
+                { emoji:'🌐', title:'Energy Independence', desc:'Many homeowners achieve 80–100% energy independence with this bundle during summer months.' },
+            ],
+            configs: [
+                { name:'Powerwall 3 + Solar Panels', detail:'27 kWh storage · ~8 kW solar · Bundle', price:'$22,000', active:true },
+                { name:'Powerwall 3 + Solar Roof', detail:'27 kWh storage · ~10 kW solar roof · Full bundle', price:'$46,000' },
+            ],
+        },
+        15: {
+            gallery: ['images/card1.avif','images/feature1.avif','images/feature2.avif','images/card1.avif'],
+            colors: [ { name:'Slate Black', hex:'#2c2c2c' }, { name:'Terra Cotta', hex:'#8b6552' } ],
+            specs: [
+                { group: 'Performance', rows: [
+                    { k:'Output (typical)', v:'~10 kW peak', highlight:true },
+                    { k:'Efficiency', v:'Up to 22.8%' },
+                    { k:'Cell Type', v:'Tempered glass tiles' },
+                    { k:'Wind Rating', v:'166 mph' },
+                ]},
+                { group: 'Installation', rows: [
+                    { k:'Warranty (power)', v:'25 years' },
+                    { k:'Warranty (weatherization)', v:'Lifetime' },
+                    { k:'Hail Rating', v:'Class 3 impact resistance' },
+                ]},
+            ],
+            features: [
+                { emoji:'🏡', title:'Looks Like a Real Roof', desc:'Solar Roof tiles are indistinguishable from premium slate or terracotta roofing — no ugly panels.' },
+                { emoji:'💧', title:'Weatherproof for Life', desc:'Lifetime weatherization warranty. Tesla Solar Roof tiles are more durable than conventional roofing.' },
+                { emoji:'☀️', title:'22.8% Efficiency', desc:'High-efficiency tempered glass cells capture maximum solar energy with minimal tile footprint.' },
+                { emoji:'📱', title:'Real-Time Monitoring', desc:'Tesla app shows live energy production, home consumption, and battery state at all times.' },
+                { emoji:'💰', title:'Federal Tax Incentives', desc:'Eligible for 30% federal solar investment tax credit, plus potential state-level incentives.' },
+                { emoji:'🏠', title:'Roof Replacement Included', desc:'Installation includes complete roof replacement — you get a durable new roof AND solar in one.' },
+            ],
+            configs: [
+                { name:'Solar Roof (Standard)', detail:'~8 kW · Partial active tile coverage', price:'From $35,000', active:true },
+                { name:'Solar Roof + Powerwall', detail:'~10 kW + 13.5 kWh storage · Full home system', price:'From $46,000' },
+            ],
+        },
+        16: {
+            gallery: ['images/card1.avif','images/feature2.avif','images/feature1.avif','images/card1.avif'],
+            colors: [ { name:'All Black', hex:'#1a1a1a' }, { name:'Silver Frame', hex:'#9ca3af' } ],
+            specs: [
+                { group: 'Performance', rows: [
+                    { k:'Output (typical)', v:'~8 kW peak', highlight:true },
+                    { k:'Panel Efficiency', v:'Up to 20.6%' },
+                    { k:'Cell Type', v:'Monocrystalline silicon' },
+                    { k:'Tilt Angle', v:'Low-profile flush mount' },
+                ]},
+                { group: 'Warranty', rows: [
+                    { k:'Power Warranty', v:'25 years' },
+                    { k:'Product Warranty', v:'10 years' },
+                    { k:'Inverter Warranty', v:'12.5 years' },
+                ]},
+            ],
+            features: [
+                { emoji:'🌞', title:'High-Efficiency Monocrystalline', desc:'Premium monocrystalline silicon cells with up to 20.6% efficiency for maximum energy per square foot.' },
+                { emoji:'🏠', title:'Low-Profile Design', desc:'Flush-mounted panels sit close to the roof for a clean, streamlined look on any home style.' },
+                { emoji:'📱', title:'Tesla App Monitoring', desc:'Track real-time production, export, and consumption from the Tesla mobile app.' },
+                { emoji:'💰', title:'30% Tax Credit', desc:'Eligible for the full 30% federal solar investment tax credit. Most homeowners see ROI within 7–10 years.' },
+                { emoji:'🔋', title:'Powerwall Compatible', desc:'Pair with Powerwall 3 for whole-home backup and time-of-use savings. Designed to work together seamlessly.' },
+                { emoji:'🛡️', title:'25-Year Power Warranty', desc:'Tesla guarantees at least 80% of rated power output at 25 years. Built to last a lifetime.' },
+            ],
+            configs: [
+                { name:'Solar Panels (Small ~4 kW)', detail:'~4 kW output · 8–10 panels', price:'From $8,500', active:true },
+                { name:'Solar Panels (Medium ~8 kW)', detail:'~8 kW output · 16–20 panels', price:'From $14,000' },
+                { name:'Solar Panels + Powerwall', detail:'~8 kW solar + 13.5 kWh storage', price:'From $22,000' },
+            ],
+        },
+
+        // ── CHARGING ──────────────────────────────────────────────
+        17: {
+            gallery: ['images/feature2.avif','images/card1.avif','images/feature1.avif','images/feature2.avif'],
+            colors: [ { name:'White', hex:'#f5f5f5', border:true }, { name:'Black', hex:'#111111' }, { name:'Silver', hex:'#9ca3af' } ],
+            specs: [
+                { group: 'Performance', rows: [
+                    { k:'Max Power', v:'11.5 kW AC', highlight:true },
+                    { k:'Range Added per Hour', v:'Up to 44 mi', highlight:true },
+                    { k:'Voltage', v:'240V' },
+                    { k:'Amperage', v:'48A' },
+                    { k:'Cord Length', v:'24 ft' },
+                ]},
+                { group: 'Connectivity', rows: [
+                    { k:'Wi-Fi', v:'Built-in (2.4 GHz)' },
+                    { k:'App Control', v:'Tesla app scheduling' },
+                    { k:'Power Sharing', v:'Up to 4 units per circuit' },
+                    { k:'GFCI', v:'Built-in protection' },
+                ]},
+                { group: 'Installation', rows: [
+                    { k:'Mounting', v:'Indoor/outdoor' },
+                    { k:'Warranty', v:'4 years' },
+                    { k:'Operating Temp', v:'-22°F to 122°F' },
+                ]},
+            ],
+            features: [
+                { emoji:'⚡', title:'44 Miles of Range Per Hour', desc:'The fastest home charging available for Tesla vehicles. Charge overnight and always wake up to a full battery.' },
+                { emoji:'📱', title:'Tesla App Integration', desc:'Schedule charging during off-peak hours, monitor charge status, and adjust remotely from the Tesla app.' },
+                { emoji:'🔗', title:'Power Sharing (Up to 4 Units)', desc:'Multiple Wall Connectors share a single circuit, intelligently distributing power across all connected vehicles.' },
+                { emoji:'🌧️', title:'Indoor & Outdoor Rated', desc:'IP55 weather-resistant enclosure works reliably in rain, snow, heat, and cold.' },
+                { emoji:'🏠', title:'Clean, Integrated Design', desc:"Wall Connector's slim profile and premium finish complement any home's interior or exterior aesthetic." },
+                { emoji:'🔒', title:'Vehicle Authentication', desc:'Optionally restrict charging to your Tesla vehicles only, preventing unauthorized use.' },
+            ],
+            configs: [
+                { name:'Wall Connector Gen 3 (White)', detail:'11.5 kW · 44 mi/hr · 24 ft cord', price:'$425', active:true },
+                { name:'Wall Connector Gen 3 (Black)', detail:'11.5 kW · 44 mi/hr · 24 ft cord', price:'$425' },
+                { name:'Wall Connector (2-pack)', detail:'Power sharing enabled · 2× units', price:'$750' },
+            ],
+        },
+        18: {
+            gallery: ['images/feature2.avif','images/feature1.avif','images/card1.avif','images/feature2.avif'],
+            colors: [ { name:'White', hex:'#f5f5f5', border:true } ],
+            specs: [
+                { group: 'Charging Speed', rows: [
+                    { k:'NEMA 14-50 (240V)', v:'Up to 30 mi/hr', highlight:true },
+                    { k:'NEMA 5-15 (120V)', v:'3 mi/hr' },
+                    { k:'Max Power (14-50)', v:'7.2 kW' },
+                    { k:'Cord Length', v:'20 ft' },
+                ]},
+                { group: 'Compatibility', rows: [
+                    { k:'Adapters Included', v:'NEMA 5-15 + NEMA 14-50' },
+                    { k:'Compatible Models', v:'All Tesla vehicles' },
+                    { k:'Storage Bag', v:'Included' },
+                    { k:'Weight', v:'2.1 lbs' },
+                ]},
+            ],
+            features: [
+                { emoji:'✈️', title:'Perfect for Travel', desc:'Compact and lightweight — toss it in your trunk and charge from any outlet wherever you go.' },
+                { emoji:'🔌', title:'Two Adapters Included', desc:'Comes with both NEMA 5-15 (standard wall outlet) and NEMA 14-50 (dryer outlet) adapters in the box.' },
+                { emoji:'📦', title:'Included with New Teslas', desc:'Every new Tesla vehicle ships with a Mobile Connector, so you can charge from day one.' },
+                { emoji:'🏕️', title:'Campground Ready', desc:'NEMA 14-50 is the standard at most RV parks and campgrounds — ideal for road trips and adventures.' },
+                { emoji:'🔒', title:'Thermal Protection', desc:'Built-in thermal management automatically adjusts charge rate to protect the cable in high-temperature environments.' },
+                { emoji:'🛡️', title:'GFCI Protection', desc:'Ground-fault protection is built in, safeguarding against electrical faults in any outlet you connect to.' },
+            ],
+            configs: [
+                { name:'Mobile Connector Bundle', detail:'Includes NEMA 5-15 + 14-50 adapters', price:'$230', active:true },
+                { name:'NEMA 14-50 Adapter (spare)', detail:'Replacement / additional adapter only', price:'$45' },
+            ],
+        },
+        19: {
+            gallery: ['images/feature1.avif','images/feature2.avif','images/card1.avif','images/feature1.avif'],
+            colors: [ { name:'Red Pin', hex:'#e31937' } ],
+            specs: [
+                { group: 'Network', rows: [
+                    { k:'Peak Charging Speed', v:'250 kW DC', highlight:true },
+                    { k:'Stations (US)', v:'2,000+', highlight:true },
+                    { k:'Global Stations', v:'50,000+' },
+                    { k:'Connectors per Station', v:'Avg. 8–16 stalls' },
+                ]},
+                { group: 'Subscription', rows: [
+                    { k:'Duration', v:'1 Year (365 days)' },
+                    { k:'Starts', v:'On first use or activation' },
+                    { k:'Sessions', v:'Unlimited' },
+                    { k:'Idle Fees', v:'Apply after 5 min when full' },
+                ]},
+            ],
+            features: [
+                { emoji:'⚡', title:'250 kW V3 Supercharger', desc:'V3 Superchargers add up to 1,000 miles of range per hour of charging — 200 miles in just 15 minutes.' },
+                { emoji:'🗺️', title:'2,000+ US Stations', desc:'The largest and most reliable EV charging network in the world, always within reach on any route.' },
+                { emoji:'🧭', title:'Built Into Navigation', desc:"Tesla's navigation automatically routes you through Superchargers when needed, with pre-conditioning included." },
+                { emoji:'💳', title:'Unlimited Sessions', desc:'Use any Supercharger in the US as many times as you need for 12 full months — no per-session fees.' },
+                { emoji:'📱', title:'App Check-In', desc:'The Tesla app shows available stalls in real-time and lets you monitor your charging session from anywhere.' },
+                { emoji:'☕', title:'Amenity-Rich Locations', desc:'Most Supercharger locations are co-located with restaurants, coffee shops, and retail for a comfortable wait.' },
+            ],
+            configs: [
+                { name:'Supercharger Access (1 Year)', detail:'Unlimited sessions · All US stations', price:'$299/yr', active:true },
+                { name:'Supercharger Access (3 Years)', detail:'Unlimited sessions · Best value', price:'$699' },
+            ],
+        },
+        20: {
+            gallery: ['images/feature2.avif','images/card1.avif','images/feature1.avif','images/feature2.avif'],
+            colors: [ { name:'White', hex:'#f5f5f5', border:true }, { name:'Black', hex:'#111111' } ],
+            specs: [
+                { group: 'Compatibility', rows: [
+                    { k:'Standard', v:'SAE J1772 Level 2', highlight:true },
+                    { k:'Max Power', v:'19.2 kW' },
+                    { k:'Compatible', v:'All Tesla models' },
+                    { k:'Cable Length', v:'~4.5 ft (adapter cable)' },
+                ]},
+                { group: 'Physical', rows: [
+                    { k:'Weight', v:'0.8 lbs' },
+                    { k:'Storage', v:'Fits in frunk/bag' },
+                    { k:'Operating Temp', v:'-40°F to 185°F' },
+                    { k:'Warranty', v:'1 year' },
+                ]},
+            ],
+            features: [
+                { emoji:'🔌', title:'Charge at Any Level 2 Station', desc:'The J1772 standard is used at thousands of public Level 2 chargers — this adapter unlocks all of them for your Tesla.' },
+                { emoji:'🏢', title:'Workplace & Destination Charging', desc:'Most hotels, parking garages, and workplaces use J1772. Never miss a charging opportunity again.' },
+                { emoji:'🏋️', title:'Up to 19.2 kW Charging', desc:'Compatible with the full power output of J1772 Level 2 stations — no performance compromise.' },
+                { emoji:'🧳', title:'Compact & Portable', desc:'Weighs under a pound. Lives in your frunk or glovebox so it is always with you when you need it.' },
+                { emoji:'🌧️', title:'All-Weather Rated', desc:'Designed for outdoor use in all weather conditions, from -40°F to 185°F.' },
+                { emoji:'🛡️', title:'Tesla-Engineered Quality', desc:'Built to Tesla standards for safe, efficient charging. Not a third-party adapter — genuine Tesla hardware.' },
+            ],
+            configs: [
+                { name:'J1772 Adapter', detail:'Level 2 compatibility · Up to 19.2 kW', price:'$45', active:true },
+                { name:'Adapter Bundle (J1772 + CCS)', detail:'Level 2 + DC fast charge compatibility', price:'$295' },
+            ],
+        },
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // MODAL LOGIC
+    // ═══════════════════════════════════════════════════════════════
+    const backdrop  = document.getElementById('modalBackdrop');
+    const modalEl   = document.getElementById('modal');
+    let currentGalleryIndex = 0;
+
+    function openModal(itemId) {
+        const item   = inventory.find(i => i.id === itemId);
+        const detail = detailData[itemId];
+        if (!item || !detail) return;
+
+        // ── Overview tab ──
+        document.getElementById('m-category').textContent = item.category.charAt(0).toUpperCase() + item.category.slice(1) + (item.model ? ' · ' + item.model : '');
+        document.getElementById('m-name').textContent     = item.name;
+        document.getElementById('m-stars').textContent    = '★'.repeat(Math.floor(item.rating));
+        document.getElementById('m-rating').textContent   = item.rating;
+        document.getElementById('m-reviews').textContent  = `(${item.reviews.toLocaleString()} reviews)`;
+        document.getElementById('m-desc').textContent     = item.desc;
+        document.getElementById('m-price').textContent    = item.priceDisplay;
+        document.getElementById('m-price-sub').textContent = item.savings || 'Starting price before options';
+        document.getElementById('m-learn-more').href      = item.learnMore;
+
+        // Availability pill
+        const avail = document.getElementById('m-avail');
+        avail.textContent = item.availability;
+        avail.className   = 'modal-avail-pill ' + (item.availability === 'In Stock' ? 'badge-instock' : item.availability === 'Limited' ? 'badge-limited' : 'badge-deal');
+
+        // APR pill
+        const aprEl = document.getElementById('m-apr');
+        if (item.apr) { aprEl.textContent = item.apr; aprEl.style.display = 'inline'; }
+        else { aprEl.style.display = 'none'; }
+
+        // Colors
+        const colorsEl   = document.getElementById('m-colors');
+        const colorLabel = document.getElementById('m-color-name');
+        colorsEl.innerHTML = '';
+        detail.colors.forEach((c, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'modal-color-btn' + (i === 0 ? ' active' : '');
+            btn.style.background = c.gradient ? c.hex : c.hex;
+            if (c.border) btn.style.boxShadow = 'inset 0 0 0 1px #d1d5db';
+            btn.title = c.name;
+            btn.setAttribute('data-name', c.name);
+            btn.addEventListener('click', () => {
+                colorsEl.querySelectorAll('.modal-color-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                colorLabel.textContent = c.name;
+                // Swap gallery image if possible
+                if (detail.gallery[i]) setGalleryImage(i);
+            });
+            colorsEl.appendChild(btn);
+        });
+        colorLabel.textContent = detail.colors[0]?.name || '';
+
+        // ── Specs tab ──
+        document.getElementById('m-specs-name').textContent = item.name;
+        const specsContent = document.getElementById('m-specs-content');
+        specsContent.innerHTML = detail.specs.map(group => `
+            <div class="specs-section-heading" style="margin-top:16px">${group.group}</div>
+            <div class="specs-group">
+                ${group.rows.map(r => `
+                <div class="spec-row">
+                    <span class="spec-key">${r.k}</span>
+                    <span class="spec-val ${r.highlight ? 'spec-highlight' : ''}">${r.v}</span>
+                </div>`).join('')}
+            </div>
+        `).join('');
+
+        // ── Features tab ──
+        document.getElementById('m-feat-name').textContent = item.name;
+        document.getElementById('m-features-list').innerHTML = detail.features.map(f => `
+            <div class="feature-item">
+                <div class="feature-emoji">${f.emoji}</div>
+                <div class="feature-text-wrap">
+                    <div class="feature-item-title">${f.title}</div>
+                    <div class="feature-item-desc">${f.desc}</div>
+                </div>
+            </div>
+        `).join('');
+
+        // ── Config tab ──
+        document.getElementById('m-configs').innerHTML = detail.configs.map((c, i) => `
+            <div class="modal-config-btn ${c.active ? 'active' : ''}" onclick="selectConfig(this)">
+                <div>
+                    <div class="modal-config-name">${c.name}</div>
+                    <div class="modal-config-detail">${c.detail}</div>
+                </div>
+                <div class="modal-config-price">${c.price}</div>
+            </div>
+        `).join('');
+
+        // ── Gallery ──
+        const thumbsEl = document.getElementById('galleryThumbs');
+        thumbsEl.innerHTML = detail.gallery.map((src, i) => `
+            <div class="gallery-thumb ${i===0?'active':''}" data-index="${i}" onclick="setGalleryImage(${i})">
+                <img src="${src}" alt="">
+            </div>
+        `).join('');
+        setGalleryImage(0);
+
+        // ── Reset tabs to Overview ──
+        document.querySelectorAll('.modal-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'overview'));
+        document.querySelectorAll('.modal-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-overview'));
+        document.querySelector('.modal-details').scrollTop = 0;
+
+        backdrop.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function setGalleryImage(index) {
+        const item   = inventory.find(i => i.id === currentOpenId);
+        const detail = detailData[currentOpenId];
+        if (!detail) return;
+        currentGalleryIndex = index;
+        const mainImg = document.getElementById('galleryMain');
+        mainImg.classList.add('fade-out');
+        setTimeout(() => {
+            mainImg.src = detail.gallery[index] || detail.gallery[0];
+            mainImg.classList.remove('fade-out');
+        }, 200);
+        document.querySelectorAll('.gallery-thumb').forEach((t, i) => t.classList.toggle('active', i === index));
+    }
+
+    function selectConfig(el) {
+        document.querySelectorAll('.modal-config-btn').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    function closeModal() {
+        backdrop.classList.remove('open');
+        document.body.style.overflow = '';
+        currentOpenId = null;
+    }
+
+    let currentOpenId = null;
+
+    // Tab switching
+    document.querySelectorAll('.modal-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.modal-panel').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+            document.querySelector('.modal-details').scrollTop = 0;
+        });
+    });
+
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    // ── Make cards clickable ──
+    // Override renderCard to wire click on card image + name
+    const _origRenderCard = renderCard;
+    window.openProductModal = function(id) {
+        currentOpenId = id;
+        openModal(id);
+    };
+    </script>
+</body>
+</html>
